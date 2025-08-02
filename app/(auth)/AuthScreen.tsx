@@ -1,14 +1,14 @@
 import { AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
+//import * as WebBrowser from 'expo-web-browser';
 import { MotiText } from 'moti';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '../../services/authService';
+import { signInWithEmail, signInWithGoogle } from '../../services/authService';
 
-WebBrowser.maybeCompleteAuthSession();
+//WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,12 +37,19 @@ export default function AuthScreen() {
 
     try {
       if (isSignUp) {
-        await signUpWithEmail(credentials.email, credentials.password);
+        // ✅ Don't create account here, just go to onboarding
+        router.push({
+          pathname: '/(auth)/OnboardingFlow',
+          params: {
+            email: credentials.email,
+            password: credentials.password,
+          },
+        });
       } else {
+        // ✅ Normal login
         await signInWithEmail(credentials.email, credentials.password);
+        router.replace('/'); // navigate to main/index
       }
-
-      router.replace('/'); // Navigate to home
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -59,7 +66,6 @@ export default function AuthScreen() {
       setError(err.message);
     }
   };
-  
 
   return (
     <LinearGradient colors={['#1a1a2e', '#16213e']} style={{ flex: 1 }}>

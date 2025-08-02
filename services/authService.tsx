@@ -18,22 +18,7 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signUpWithEmail(email: string, password: string) {
-  const response = await fetch(
-    `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/sign_up`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    }
-  );
-
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Signup failed");
-
-  // After signup, immediately sign in user
-  await signInWithEmail(email, password);
-
-  return result; // { success: true, user }
+    await alert('hello')
 }
 
 
