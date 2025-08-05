@@ -30,7 +30,7 @@ export default function RootLayout() {
     const isAuthRoute = segments[0] === '(auth)';
 
     if (!user && !isAuthRoute) {
-      router.replace('/(auth)/AuthScreen');
+      router.replace('/(auth)/OnboardingFlow');
     } else if (user && isAuthRoute) {
       router.replace('/(main)');
     }

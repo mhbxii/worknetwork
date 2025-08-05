@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ProgressBar } from "react-native-paper";
 import { fetchUser } from "../../services/userService";
+import AuthScreen from "./AuthScreen";
 import CompanyDetails from "./CompanyDetails";
 import CvParser from "./CvParser";
 import EditCandidateProfile from "./EditCandidateProfile";
@@ -13,13 +14,13 @@ import UserDetails from "./UserDetails";
 
 export default function OnboardingFlow() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ email: string; password: string }>();
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const [step, setStep] = useState(0);
 
   const [form, setForm] = useState({
-    email: params.email || "",
-    password: params.password || "",
+    email: "",
+    password: "",
     name: "",
     role: "candidate" as "candidate" | "recruiter",
     country_id: null as number | null,
@@ -88,6 +89,14 @@ export default function OnboardingFlow() {
   };
 
   const steps = [
+    <AuthScreen
+      key="authscreen"
+      form={form}
+      setForm={setForm}
+      onNext={next}
+      isSignUp={isSignUp}
+      setIsSignUp={setIsSignUp}
+    />,
     <UserDetails key="details" form={form} setForm={setForm} onNext={next} />,
     ...(form.role === "candidate"
       ? [
@@ -112,16 +121,19 @@ export default function OnboardingFlow() {
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
       <View style={styles.header}>
-        {step >= 0 && (
-          <TouchableOpacity onPress={back}>
-            <Ionicons name="arrow-back" size={28} color="#fff" />
-          </TouchableOpacity>
+        {step > 0 && (
+          <>
+            <TouchableOpacity onPress={back}>
+              <Ionicons name="arrow-back" size={28} color="#fff" />
+            </TouchableOpacity>
+          
+            <ProgressBar
+              progress={(step + 1) / steps.length} // step is 0-based
+              color="#fff"
+              style={{ height: 10, borderRadius: 10, width: 150 }}
+            />
+          </>
         )}
-        <ProgressBar
-          progress={(step + 1) / steps.length} // step is 0-based
-          color="#fff"
-          style={{ height: 10, borderRadius: 10, width: 150 }}
-        />
         <View style={{ width: 28 }} /> {/* Spacer */}
       </View>
 

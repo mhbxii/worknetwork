@@ -1,33 +1,37 @@
+import { OnboardingForm } from '@/types/userDetailsForm';
 import { AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-//import * as WebBrowser from 'expo-web-browser';
+import * as WebBrowser from 'expo-web-browser';
 import { MotiText } from 'moti';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { signInWithEmail, signInWithGoogle } from '../../services/authService';
 
-//WebBrowser.maybeCompleteAuthSession();
+WebBrowser.maybeCompleteAuthSession();
 
-export default function AuthScreen() {
-  const [isSignUp, setIsSignUp] = useState(false);
+interface Props {
+  form: OnboardingForm;
+  setForm: (form: OnboardingForm) => void;
+  onNext: () => void;
+  isSignUp: boolean;
+  setIsSignUp: (isSignUp: boolean) => void;
+}
+
+export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignUp }: Props) {
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
 
   const router = useRouter();
 
-  const handleCredentials = (field: string, value: string) => {
-    setCredentials((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleAuth = async () => {
-    if (!credentials.email || !credentials.password) {
+    if (!form.email || !form.password) {
       setError('Please fill in all fields.');
       return;
     }
-    if (credentials.password.length < 6) {
+    if (form.password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
     }
@@ -37,17 +41,10 @@ export default function AuthScreen() {
 
     try {
       if (isSignUp) {
-        // ✅ Don't create account here, just go to onboarding
-        router.push({
-          pathname: '/(auth)/OnboardingFlow',
-          params: {
-            email: credentials.email,
-            password: credentials.password,
-          },
-        });
+        onNext(); // Move to next step in onboarding flow
       } else {
         // ✅ Normal login
-        await signInWithEmail(credentials.email, credentials.password);
+        await signInWithEmail(form.email, form.password);
         router.replace('/'); // navigate to main/index
       }
     } catch (e: any) {
@@ -86,8 +83,8 @@ export default function AuthScreen() {
           <TextInput
             label="Email"
             mode="outlined"
-            value={credentials.email}
-            onChangeText={(text) => handleCredentials('email', text)}
+            value={form.email}
+            onChangeText={(email) => setForm({ ...form, email })}
             keyboardType="email-address"
             autoCapitalize="none"
             style={styles.input}
@@ -97,8 +94,8 @@ export default function AuthScreen() {
             label="Password"
             mode="outlined"
             secureTextEntry
-            value={credentials.password}
-            onChangeText={(text) => handleCredentials('password', text)}
+            value={form.password}
+            onChangeText={(password) => setForm({ ...form, password })}
             style={styles.input}
           />
 
@@ -125,7 +122,7 @@ export default function AuthScreen() {
 
           <Button
             mode="text"
-            onPress={() => setIsSignUp((prev) => !prev)}
+            onPress={() => setIsSignUp(!isSignUp)}
             style={styles.switchBtn}
           >
             {isSignUp

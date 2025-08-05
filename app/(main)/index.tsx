@@ -8,7 +8,7 @@ export default function Index() {
 
   const handleSignOut = async () => {
     await useAuth.getState().signOut();
-    router.replace("/(auth)/AuthScreen");
+    router.replace("/(auth)/OnboardingFlow");
   };
 
   if (!user) return <Text>Loading user data...</Text>;
