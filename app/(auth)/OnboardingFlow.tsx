@@ -1,3 +1,5 @@
+import { signUpCandidate, signUpRecruiter } from "@/services/customSignUpService";
+import { OnboardingForm } from "@/types/userDetailsForm";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -5,7 +7,6 @@ import { MotiView } from "moti";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ProgressBar } from "react-native-paper";
-import { fetchUser } from "../../services/userService";
 import AuthScreen from "./AuthScreen";
 import CompanyDetails from "./CompanyDetails";
 import CvParser from "./CvParser";
@@ -18,21 +19,29 @@ export default function OnboardingFlow() {
 
   const [step, setStep] = useState(0);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<OnboardingForm>({
     email: "",
     password: "",
     name: "",
-    role: "candidate" as "candidate" | "recruiter",
-    country_id: null as number | null,
-    profile_summary: "",
-    skills: [] as number[],
-    job_category_id: null as number | null,
-    company_id: null as number | null,
+    role: "candidate",
+    country_id: null,
+  
+    job_title: "",
+    experiences: [],  // preload parsed CV here
+    projects: [],     // preload parsed CV here
+    skills: [],
+    job_category_id: null,
+  
     company_name: "",
+    company_id: null,
     position_title: "",
   });
 
-  const next = () => setStep((s) => s + 1);
+  const next = () =>{
+    if(steps.length <= step + 1) return; // Prevent going beyond last step
+    setStep((s) => s + 1);
+  }
+
   const back = () => {
     if (step > 0) {
       setStep((s) => s - 1);
@@ -43,50 +52,18 @@ export default function OnboardingFlow() {
 
   const submit = async () => {
     try {
-      const endpoint =
+      const result =
         form.role === "candidate"
-          ? "/functions/v1/sign_up_candidate"
-          : "/functions/v1/sign_up_recruiter";
-
-      const payload =
-        form.role === "candidate"
-          ? {
-              email: form.email,
-              password: form.password,
-              name: form.name,
-              country_id: form.country_id,
-              profile_summary: form.profile_summary,
-              skills: form.skills,
-              job_category_id: form.job_category_id,
-            }
-          : {
-              email: form.email,
-              password: form.password,
-              name: form.name,
-              country_id: form.country_id,
-              company_id: form.company_id,
-              company_name: form.company_name,
-              position_title: form.position_title,
-            };
-
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}${endpoint}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Signup failed");
-
-      await fetchUser();
-      router.replace("/");
+          ? await signUpCandidate(form)
+          : await signUpRecruiter(form);
+      console.log("Signup successful:", result);
     } catch (err: any) {
-      alert(err.message);
+      console.error("Signup failed:", err.message);
+      alert("Signup Error: " + err.message);
     }
   };
+  
+  
 
   const steps = [
     <AuthScreen

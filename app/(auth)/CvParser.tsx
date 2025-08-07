@@ -1,3 +1,4 @@
+import { summarizeCVToForm } from "@/services/geminiSummarizer";
 import { OnboardingForm } from "@/types/userDetailsForm";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
@@ -58,9 +59,12 @@ export default function CvParser({ form, setForm, onNext }: Props) {
       } as any);
 
       const parseXhr = new XMLHttpRequest();
-      parseXhr.open("POST", "https://pdf-parser-4-vercel-gvtu.vercel.app/api/parse_pdf");
+      parseXhr.open(
+        "POST",
+        "https://pdf-parser-4-vercel-gvtu.vercel.app/api/parse_pdf"
+      );
       parseXhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) setProgress((e.loaded / e.total) * 0.5);
+        if (e.lengthComputable) setProgress((e.loaded / e.total) * 0.37);
       };
 
       const parsedText: string = await new Promise((resolve, reject) => {
@@ -77,25 +81,15 @@ export default function CvParser({ form, setForm, onNext }: Props) {
       });
 
       // 2️⃣ Summarize via Gemini
-      setProgress(0.6);
-      const prompt = `Summarize this CV strictly into JSON with keys: jobtitle, projects (top 5 names), skills (hard skills list), professional experience. Idempotent output. CV Text:\n${parsedText}`;
-      const geminiRes = await fetch(
-        "https://owjinefzghxrcmbltpql.supabase.co/functions/v1/gemini_power",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        }
-      );
-      const geminiData = await geminiRes.json();
-      if (!geminiRes.ok) throw new Error(geminiData.error || "Summarization failed");
+      setProgress(0.68);
+  
+      // ✅ New clean call
+      const updatedForm = await summarizeCVToForm(parsedText, form);
+      setForm(updatedForm);
 
-      setForm({ ...form, profile_summary: geminiData.output });
       setProgress(1);
-      setLoading(false);
       setSuccess(true);
-
-      // Show success icon for 1s then move to next screen
+  
       setTimeout(() => {
         setSuccess(false);
         onNext();
@@ -106,9 +100,17 @@ export default function CvParser({ form, setForm, onNext }: Props) {
       setProgress(0);
     }
   };
+  
 
+  // ⏭ Skip parsing
   const handleSkip = () => {
-    setForm({ ...form, profile_summary: "" });
+    setForm({
+      ...form,
+      job_title: "",
+      projects: [],
+      experiences: [],
+      skills: [],
+    });
     onNext();
   };
 
@@ -134,7 +136,12 @@ export default function CvParser({ form, setForm, onNext }: Props) {
               <ProgressBar
                 progress={progress}
                 color="#4CAF50"
-                style={{ marginTop: 12, height: 6, borderRadius: 6, width: "80%" }}
+                style={{
+                  marginTop: 12,
+                  height: 6,
+                  borderRadius: 6,
+                  width: "80%",
+                }}
               />
               <Text style={{ color: "#fff", marginTop: 8 }}>
                 Processing... {Math.round(progress * 100)}%
@@ -147,17 +154,13 @@ export default function CvParser({ form, setForm, onNext }: Props) {
             </View>
           ) : (
             <>
-              <Button mode="contained" onPress={handlePickPDF} style={styles.button}>
+              <Button
+                mode="contained"
+                onPress={handlePickPDF}
+                style={styles.button}
+              >
                 Select PDF
               </Button>
-
-              {/* {form.profile_summary ? (
-                <Text style={styles.preview} numberOfLines={5} ellipsizeMode="tail">
-                  Preview: {form.profile_summary}
-                </Text>
-              ) : (
-                <Text style={styles.hint}>No CV processed yet.</Text>
-              )} */}
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Button
@@ -176,7 +179,12 @@ export default function CvParser({ form, setForm, onNext }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
   card: {
     width: "100%",
     backgroundColor: "rgba(255,255,255,0.05)",
@@ -194,7 +202,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   button: { marginTop: 12, paddingVertical: 4 },
-  skipButton: { marginTop: 12, paddingVertical: 1, width: 10},
+  skipButton: { marginTop: 12, paddingVertical: 1, width: 10 },
   loadingContainer: { justifyContent: "center", alignItems: "center" },
   hint: { color: "#aaa", marginTop: 12, textAlign: "center" },
   preview: { color: "#fff", marginTop: 16, fontSize: 12 },

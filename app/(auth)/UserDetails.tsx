@@ -166,7 +166,7 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
               mode="contained"
               onPress={onNext}
               style={styles.button}
-              disabled={!form.name || !form.country_id || form.country_id>100 || !form.role}
+              disabled={!form.name || !form.country_id || !form.role}
             >
               Next
             </Button>
