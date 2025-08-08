@@ -2,8 +2,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/authStore";
 import { fetchUser } from "./userService";
 
-let subscribed = false;
-
 // 1️⃣ Immediately check persisted session on app load
 supabase.auth.getSession().then(({ data: { session } }) => {
   const auth = useAuth.getState();
@@ -16,6 +14,8 @@ supabase.auth.getSession().then(({ data: { session } }) => {
 });
 
 // 2️⃣ Subscribe to future session changes
+let subscribed = false;
+
 if (!subscribed) {
   subscribed = true;
   supabase.auth.onAuthStateChange((_event, session) => {

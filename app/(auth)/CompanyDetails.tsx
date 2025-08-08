@@ -1,6 +1,8 @@
 import { OnboardingForm } from "@/types/userDetailsForm";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Button, Text, TextInput } from "react-native-paper";
 
 interface OnboardingProps {
   form: OnboardingForm;
@@ -13,34 +15,78 @@ export default function CompanyDetails({
   setForm,
   onNext,
 }: OnboardingProps) {
+  let clicked = false;
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Recruiter Company Details</Text>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.card}>
+          <Text style={styles.title}>Recruiter Company Details</Text>
 
-      <TextInput
-        placeholder="Company name"
-        value={form.company_name}
-        onChangeText={(text) => setForm({ ...form, company_name: text })}
-        style={styles.input}
-      />
+          <TextInput
+            label="Company name"
+            mode="outlined"
+            value={form.company_name}
+            onChangeText={(text) => setForm({ ...form, company_name: text })}
+            style={styles.input}
+          />
 
-      <TextInput
-        placeholder="Position title"
-        value={form.position_title}
-        onChangeText={(text) => setForm({ ...form, position_title: text })}
-        style={styles.input}
-      />
+          <TextInput
+            label="Position title"
+            mode="outlined"
+            value={form.position_title}
+            onChangeText={(text) => setForm({ ...form, position_title: text })}
+            style={styles.input}
+          />
 
-      <Text style={styles.debug}>{JSON.stringify(form, null, 2)}</Text>
-
-      <Button title="Submit Recruiter" onPress={onNext} />
-    </View>
+          <Button
+            mode="contained"
+            onPress={() => {
+              if (clicked) return;
+              clicked = true;
+              onNext();
+            }}
+            style={styles.button}
+          >
+            Submit Recruiter
+          </Button>
+        </View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
-  title: { fontSize: 22, marginBottom: 16 },
-  input: { borderWidth: 1, borderColor: "#ccc", padding: 8, marginBottom: 12 },
-  debug: { marginTop: 16, fontSize: 12, color: "#555" },
+  card: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    justifyContent: "center",
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: 24,
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 28,
+  },
+  input: {
+    marginBottom: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  button: {
+    marginTop: 12,
+    paddingVertical: 4,
+  },
+  debug: {
+    marginTop: 16,
+    fontSize: 12,
+    color: "#555",
+  },
 });

@@ -1,4 +1,5 @@
 import { signUpCandidate, signUpRecruiter } from "@/services/customSignUpService";
+import { useAuth } from "@/store/authStore";
 import { OnboardingForm } from "@/types/userDetailsForm";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,6 +16,7 @@ import UserDetails from "./UserDetails";
 
 export default function OnboardingFlow() {
   const router = useRouter();
+  const { setUser, setProfile, setInitialized } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
 
   const [step, setStep] = useState(0);
@@ -52,11 +54,15 @@ export default function OnboardingFlow() {
 
   const submit = async () => {
     try {
-      const result =
-        form.role === "candidate"
-          ? await signUpCandidate(form)
-          : await signUpRecruiter(form);
-      console.log("Signup successful:", result);
+      const result = form.role === "candidate"
+        ? await signUpCandidate(form)
+        : await signUpRecruiter(form);
+  
+      setUser(result.user);
+      setProfile(result.profile);
+      setInitialized(true);
+  
+      router.replace("/(main)");
     } catch (err: any) {
       console.error("Signup failed:", err.message);
       alert("Signup Error: " + err.message);

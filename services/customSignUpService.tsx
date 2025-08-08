@@ -84,23 +84,68 @@ export async function signUpCandidate(form: OnboardingForm) {
 
   // 6️⃣ Insert experiences
   if (experiences?.length) {
-    const expRows = experiences.map((e) => ({
-      candidate_id,
-      company_id: e.company_id,
-      job_title: e.job_title,
-      start_date: e.start_date || null,
-      end_date: e.end_date || null,
-    }));
+    const expRows = [];
+
+    for (const e of experiences) {
+      let companyId: number | null = null;
+
+      // 1 Try to find company by name
+      const { data: existingCompany, error: searchError } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("name", e.company_name.trim().toLowerCase())
+        .maybeSingle();
+
+      if (searchError) throw new Error(searchError.message);
+
+      if (existingCompany) {
+        companyId = existingCompany.id;
+      } else {
+        // 2️ Insert new company
+        const { data: newCompany, error: insertError } = await supabase
+          .from("companies")
+          .insert({ name: e.company_name.trim().toLowerCase() })
+          .select("id")
+          .single();
+
+        if (insertError) throw new Error(insertError.message);
+        companyId = newCompany.id;
+      }
+
+      // 3️ Prepare experience row
+      expRows.push({
+        candidate_id,
+        company_id: companyId,
+        job_title: e.job_title,
+        start_date: e.start_date || null,
+        end_date: e.end_date || null,
+      });
+    }
+
+    // 4️ Insert all experiences
     const { error: expError } = await supabase
       .from("candidate_experiences")
       .insert(expRows);
+
     if (expError) throw new Error(expError.message);
   }
 
-  return { user: authUser, profile: userData, candidate: candidateData };
+  return {
+    user: userData, // base user from public.users
+    profile: {
+      role: "candidate" as const,
+      data: {
+        job_title: candidateData.job_title,
+        experiences, // pass from input or fetch fresh if you want consistency
+        projects,
+        skills,
+        job_category_id: candidateData.job_category_id,
+      },
+    },
+  };
 }
 
-export async function signUpRecruiter(form: any) {
+export async function signUpRecruiter(form: OnboardingForm) {
   const {
     email,
     password,
@@ -146,21 +191,40 @@ export async function signUpRecruiter(form: any) {
     .single();
   if (userError) throw new Error(userError.message);
 
-  // 3️⃣ Determine company_id
+  // 3️⃣ Determine company_id, check existing company first
   let finalCompanyId = company_id;
-  if (!company_id && company_name) {
-    const { data: companyData, error: companyError } = await supabase
+
+  if (!finalCompanyId && company_name) {
+    // Search existing company (case-insensitive)
+    const { data: existingCompany, error: findError } = await supabase
       .from("companies")
-      .insert({
-        name: company_name,
-      })
-      .select()
+      .select("id, name")
+      .ilike("name", company_name.trim())
+      .limit(1)
       .single();
-    if (companyError) throw new Error(companyError.message);
-    finalCompanyId = companyData.id;
+
+    if (findError && findError.code !== "PGRST116") {
+      // PGRST116 = no rows found, which is fine here
+      throw new Error(findError.message);
+    }
+
+    if (existingCompany) {
+      finalCompanyId = existingCompany.id;
+    } else {
+      // Insert new company if not found
+      const { data: companyData, error: companyError } = await supabase
+        .from("companies")
+        .insert({
+          name: company_name.trim().toLowerCase(),
+        })
+        .select("id")
+        .single();
+      if (companyError) throw new Error(companyError.message);
+      finalCompanyId = companyData.id;
+    }
   }
 
-  // 4️⃣ Insert into hrs (not recruiters)
+  // 4️⃣ Insert into hrs
   const { data: hrData, error: hrError } = await supabase
     .from("hrs")
     .insert({
@@ -172,5 +236,15 @@ export async function signUpRecruiter(form: any) {
     .single();
   if (hrError) throw new Error(hrError.message);
 
-  return { user: authUser, profile: userData, recruiter: hrData };
+  return {
+    user: userData,
+    profile: {
+      role: "recruiter" as const,
+      data: {
+        company_id: finalCompanyId,
+        company_name: company_name,
+        position_title: hrData.position_title,
+      },
+    },
+  };
 }

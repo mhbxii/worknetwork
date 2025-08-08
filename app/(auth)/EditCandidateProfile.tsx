@@ -37,6 +37,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
     { label: string; value: number }[]
   >([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  let clicked = false;
 
   // === Fetch job categories from DB ===
   useEffect(() => {
@@ -207,9 +208,11 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
               />
             )}
 
-            { !form.job_category_id && <HelperText type="info">
-              Please select your field of expertise
-            </HelperText>}
+            {!form.job_category_id && (
+              <HelperText type="info">
+                Please select your field of expertise
+              </HelperText>
+            )}
           </Surface>
 
           {/* Job Title Section */}
@@ -432,7 +435,15 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
             </View>
           </Surface>
 
-          <Button mode="contained" onPress={onNext} style={styles.saveButton}>
+          <Button
+            mode="contained"
+            onPress={() => {
+              if (clicked) return; // block further presses
+              clicked = true;
+              onNext();
+            }}
+            style={styles.saveButton}
+          >
             Save & Continue
           </Button>
         </ScrollView>
