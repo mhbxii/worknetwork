@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../store/authStore";
 
-
 export async function fetchUser() {
   const { session, setUser, setProfile } = useAuth.getState();
   if (!session?.user) return;
@@ -59,15 +58,19 @@ export async function fetchUser() {
       }
 
       const projects = projectsError || !projectsData ? [] : projectsData;
-      const experiencesRaw = experiencesError || !experiencesData ? [] : experiencesData;
+      const experiencesRaw =
+        experiencesError || !experiencesData ? [] : experiencesData;
       const experiences = experiencesRaw.map((e: any) => ({
         company_id: e.company_id,
-        company_name: e.companies?.name ?? "", // flattened for your TS type
+        company_name: Array.isArray(e.companies) && e.companies.length > 0 ? e.companies[0].name : "",
         job_title: e.job_title,
         start_date: e.start_date,
         end_date: e.end_date,
       }));
-      const skills = skillsError || !skillsData ? [] : skillsData.map((s: any) => s.skill_id);
+      const skills =
+        skillsError || !skillsData
+          ? []
+          : skillsData.map((s: any) => s.skill_id);
 
       setProfile({
         role: "candidate" as const,
@@ -100,7 +103,11 @@ export async function fetchUser() {
         role: "recruiter" as const,
         data: {
           company_id: hrData.company_id,
-          company_name: hrData.companies?.[0].name ?? "",
+          company_name:
+            Array.isArray(hrData.companies) && hrData.companies.length > 0
+              ? hrData.companies[0].name
+              : "",
+
           position_title: hrData.position_title ?? "",
         },
       });
@@ -121,7 +128,6 @@ export async function fetchUser() {
     console.error("Error fetching user profile:", err);
   }
 }
-
 
 // New: fetch supabase session & user from DB and update Zustand
 export async function loadSessionAndUser() {
