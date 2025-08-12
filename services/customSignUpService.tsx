@@ -140,6 +140,7 @@ export async function signUpCandidate(form: OnboardingForm) {
         projects,
         skills,
         job_category_id: candidateData.job_category_id,
+        nb_proposals: candidateData.nb_proposals || null, // if you track proposals
       },
     },
   };

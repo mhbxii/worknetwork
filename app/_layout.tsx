@@ -17,7 +17,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments();
-  const { user, initialized } = useAuth(); // ✅ use initialized from store
+  const { profile, initialized } = useAuth(); // ✅ use initialized from store
 
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -29,12 +29,12 @@ export default function RootLayout() {
 
     const isAuthRoute = segments[0] === '(auth)';
 
-    if (!user && !isAuthRoute) {
+    if (!profile && !isAuthRoute) {
       router.replace('/(auth)/OnboardingFlow');
-    } else if (user && isAuthRoute) {
+    } else if (profile && isAuthRoute) {
       router.replace('/(main)');
     }
-  }, [user, initialized, segments]);
+  }, [profile, initialized, segments]);
 
   // 🔹 Block rendering until fonts & auth are ready
   if (!loaded || !initialized) return null;

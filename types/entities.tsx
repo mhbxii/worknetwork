@@ -34,6 +34,7 @@ export interface CandidateProfile {
   projects: CandidateProject[];
   skills: number[];
   job_category_id: number | null;
+  nb_proposals: number | null;
 }
 
 export interface RecruiterProfile {

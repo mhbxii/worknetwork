@@ -26,7 +26,7 @@ export async function fetchUser() {
     if (userData.role_id === 1) {
       const candidateQ = supabase
         .from("candidates")
-        .select("job_title, job_category_id")
+        .select("job_title, job_category_id, nb_proposals")
         .eq("user_id", userData.id)
         .single();
 
@@ -77,6 +77,7 @@ export async function fetchUser() {
         data: {
           job_title: candidateData.job_title ?? "",
           job_category_id: candidateData.job_category_id ?? null,
+          nb_proposals: candidateData.nb_proposals ?? null,
           projects,
           experiences,
           skills,

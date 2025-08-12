@@ -1,20 +1,17 @@
 import type { Job, UserProfile } from "@/types/entities";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-//import { useBottomSheet } from "../ui/BottomSheet";
-//import { useSlidePanel } from "../ui/SlidePanel";
 
 export function useHome(profile: UserProfile | null) {
   if (!profile) {
-    throw new Error("Profile is null to useHome hook");
-    //return { jobs: [], loading: false, refresh: () => {}, onJobPress: () => {}, onJobLongPress: () => {} }
+    console.warn(
+      "useHome called without a valid profile. Returning empty state."
+    );
+    return { jobs: [], loading: false, refresh: () => Promise.resolve() };
   }
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // const { openSlidePanel } = useSlidePanel();
-  // const { openBottomSheetWithProposals } = useBottomSheet();
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -33,11 +30,12 @@ export function useHome(profile: UserProfile | null) {
         status: job.status?.name,
         company_name: job.company_name?.name,
         category_name: job.category_name?.name,
-        skills: job.job_skills?.map((js: any) => js.skill_id?.name).filter(Boolean) || [],
+        skills:
+          job.job_skills?.map((js: any) => js.skill_id?.name).filter(Boolean) ||
+          [],
       }));
 
       setJobs(mappedJobs);
-
     } catch (err) {
       console.error("Error fetching jobs:", err);
     } finally {
@@ -49,36 +47,14 @@ export function useHome(profile: UserProfile | null) {
     fetchJobs();
   }, [fetchJobs]);
 
-  const onJobPress = useCallback(
-    (job: Job) => {
-      if (profile.role === "candidate") {
-        alert("You just clicked on a job" + job.title);
-        console.log("You just clicked on a job" + job.title);
-      } else if (profile.role === "recruiter") {
-        alert("You just clicked on a job" + job.title);
-        console.log("You just clicked on a job" + job.title);
-      }
-    },
-    [profile.role]
-  );
-
-  const onJobLongPress = useCallback(
-    (job: Job) => {
-      if (profile.role === "recruiter") {
-        alert("You just long-pressed on a job" + job.title);
-        console.log("You just long-pressed on a job" + job.title);
-      }
-    },
-    [profile.role]
-  );
-
-  return { jobs, loading, refresh: fetchJobs, onJobPress, onJobLongPress };
+  return { jobs, loading, refresh: fetchJobs };
 }
 
 function buildJobQuery(profile: UserProfile, page = 0, pageSize = 20) {
   let query = supabase
     .from("jobs")
-    .select(`
+    .select(
+      `
       id,
       title,
       description,
@@ -86,12 +62,13 @@ function buildJobQuery(profile: UserProfile, page = 0, pageSize = 20) {
       status:status_id(name),
       company_name:company_id(name),
       category_name:job_category_id(name),
-      job_skills!inner(
+      job_skills:job_skills(
         skill_id (
           name
         )
       )
-    `)
+      `
+    )    // job_skills!inner( excludes jobs without skills )
     .order("created_at", { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -103,4 +80,3 @@ function buildJobQuery(profile: UserProfile, page = 0, pageSize = 20) {
 
   return query;
 }
-

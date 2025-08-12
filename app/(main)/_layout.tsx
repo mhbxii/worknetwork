@@ -13,12 +13,12 @@ import { Pressable } from "react-native-gesture-handler";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  const SignOutBtn = () => (
+  const AddJobBtn = () => (
     <Pressable
-      onPress={() => alert("Sign out clicked")}
-      style={{ marginRight: 12 }}
+      onPress={() => alert("Add Job clicked")}
+      style={{ marginRight: 12, backgroundColor: "#000", borderRadius: 50, padding: 8 }}
     >
-      <MaterialCommunityIcons name="logout" size={26} color={"#f00"} />
+      <MaterialCommunityIcons name="plus" size={26} color={"#0f0"} />
     </Pressable>
   );
 
@@ -45,7 +45,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
-          headerRight: () => <SignOutBtn />,
+          headerRight: () => <AddJobBtn />,
         }}
       />
       <Tabs.Screen
