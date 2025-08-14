@@ -1,44 +1,53 @@
 import { useAuth } from "@/store/authStore";
 import { Job } from "@/types/entities";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 type PanelMode = "candidateDetails" | "recruiterDetails" | null;
 
 export function usePanelHandlers() {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [panelVisible, setPanelVisible] = useState(false);
 
+  // Memoize the user role to prevent unnecessary callback recreations
+  const userRole = useMemo(() => user?.role?.name, [user?.role?.name]);
+
   const handlePress = useCallback(
     (job: Job) => {
       setSelectedJob(job);
-      if (profile?.role === "candidate") {
+      if (userRole === "candidate") {
         setPanelMode("candidateDetails");
-      } else if (profile?.role === "recruiter") {
-        setPanelMode("recruiterDetails"); // for now, test slide panel for recruiters too
+      } else if (userRole === "recruiter") {
+        setPanelMode("recruiterDetails");
       }
       setPanelVisible(true);
     },
-    [profile?.role]
+    [userRole] // Stable dependency
   );
 
   const handleLongPress = useCallback(
     (job: Job) => {
-      if (profile?.role === "recruiter") {
+      if (userRole === "recruiter") {
         setSelectedJob(job);
         setPanelMode("recruiterDetails");
         setPanelVisible(true);
       }
     },
-    [profile?.role]
+    [userRole] // Stable dependency
+  );
+
+  // Memoize the setPanelVisible to prevent recreations
+  const memoizedSetPanelVisible = useCallback(
+    (visible: boolean) => setPanelVisible(visible),
+    []
   );
 
   return {
     selectedJob,
     panelMode,
     panelVisible,
-    setPanelVisible,
+    setPanelVisible: memoizedSetPanelVisible,
     handlePress,
     handleLongPress,
   };

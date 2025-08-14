@@ -1,14 +1,15 @@
+import { MetaOption } from "@/store/useMetaStore";
+
 export type Job = {
   id: number; // from jobs.id
   title: string;
   description: string | null;
-  status: string; // from status.name
+  status: MetaOption; // from status.name
   created_at: string; // parse to Date in client if needed
-  skills?: string[]; // aggregated skills
-  company_name: string;
-  category_name: string;
+  skills?: MetaOption[]; // aggregated skills
+  company: MetaOption;
+  category: MetaOption;
 };
-
 
 // ------------------
 // Role-specific data
@@ -21,8 +22,7 @@ export interface CandidateProject {
 }
 
 export interface CandidateExperience {
-  company_id: number | null;
-  company_name?: string; // used for search/autocomplete
+  company: MetaOption | null;
   job_title: string;
   start_date?: string; // ISO yyyy-mm-dd
   end_date?: string; // ISO yyyy-mm-dd
@@ -32,21 +32,17 @@ export interface CandidateProfile {
   job_title: string;
   experiences: CandidateExperience[];
   projects: CandidateProject[];
-  skills: number[];
-  job_category_id: number | null;
+  skills: MetaOption[] | null;
+  job_category: MetaOption | null;
   nb_proposals: number | null;
 }
 
 export interface RecruiterProfile {
-  company_name: string;
-  company_id: number | null;
+  company: MetaOption | null;
   position_title: string;
 }
 
-export type UserProfile =
-  | { role: "candidate"; data: CandidateProfile }
-  | { role: "recruiter"; data: RecruiterProfile }
-  | { role: "admin"; data: null };
+export type UserProfile = CandidateProfile | RecruiterProfile;
 
 // ------------------
 // Base user (always loaded after login)
@@ -57,8 +53,39 @@ export interface User {
   name: string;
   email: string;
   profile_pic_url?: string;
-  role_id: number; // keep your existing field for compatibility
-  country_id: number;
+  role: MetaOption; // keep your existing field for compatibility
+  country: MetaOption;
   created_at: string;
   updated_at: string;
+}
+
+export interface OnboardingForm {
+  email: string;
+  password: string;
+  name: string;
+  role: MetaOption; // "candidate" or "recruiter"
+  country: MetaOption | null;
+
+  // candidate fields
+  job_title: string; // extracted from CV
+  experiences: CandidateExperience[]; // 0..*
+  projects: CandidateProject[]; // 0..5
+  skills: MetaOption[] | null;
+  job_category: MetaOption | null;
+
+  // recruiter fields
+  company: MetaOption | null;
+  position_title: string;
+}
+
+export function updateProfile<T extends UserProfile>(
+  prevProfile: T | null,
+  updater: (profile: T) => T
+): T | null {
+  if (!prevProfile) return prevProfile;
+  return updater(prevProfile);
+}
+
+export function isCandidateProfile(p: UserProfile | null): p is CandidateProfile {
+  return !!p && "nb_proposals" in p;
 }

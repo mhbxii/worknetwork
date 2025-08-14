@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function JobList({ jobs, loading, onRefresh, onPress, onLongPress }: Props) {
-  if (!loading && jobs.length === 0) {
+  if ((jobs ?? []).length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No jobs available.</Text>
@@ -32,9 +32,9 @@ export function JobList({ jobs, loading, onRefresh, onPress, onLongPress }: Prop
         />
       )}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+        <RefreshControl refreshing={loading} onRefresh={onRefresh}  />
       }
-      contentContainerStyle={jobs.length === 0 ? styles.flatListEmpty : undefined}
+      contentContainerStyle={(jobs ?? []).length === 0 ? styles.flatListEmpty : undefined}
       showsVerticalScrollIndicator={false}
     />
   );

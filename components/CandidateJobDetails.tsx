@@ -1,6 +1,7 @@
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/authStore";
 import { Job, RecruiterProfile } from "@/types/entities";
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,48 +9,157 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 
 interface CandidateJobDetailsProps {
   job: Job;
 }
 
-export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({ job }) => {
-  const { profile } = useAuth();
-  const nbProposals = profile?.role === "candidate" ? profile.data.nb_proposals ?? 0 : 0;
+export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
+  job,
+}) => {
+  const { profile, user, setProfile } = useAuth();
+  const [nbProposals, setNbProposals] = useState("nb_proposals" in profile! ? profile.nb_proposals ?? 0 : 0);
   const [recruiters, setRecruiters] = useState<RecruiterProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isApplied, setIsApplied] = useState(false);
+
+  useEffect(() => {
+    // Check if user has already applied for this job
+    async function checkApplication() {
+      try {
+        const { data, error } = await supabase
+          .from("job_applications")
+          .select("id")
+          .eq("job_id", job.id)
+          .eq("candidate_id", user!.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error checking application:", error);
+        } else {
+          setIsApplied(!!data);
+        }
+      } catch (err) {
+        console.error("Unexpected error checking application:", err);
+      }
+    }
+
+    checkApplication();
+  }, []);
 
   useEffect(() => {
     async function fetchRecruiters() {
       setLoading(true);
-      // TODO: Replace with real fetch by job.company_id
-      // Mock recruiters:
-      await new Promise((r) => setTimeout(r, 500)); // simulate delay
-      setRecruiters([
-        { company_name: "ACME Inc.", company_id: 1, position_title: "HR Manager" },
-        { company_name: "ACME Inc.", company_id: 1, position_title: "Recruiter" },
-      ]);
-      setLoading(false);
+
+      try {
+        const { data, error } = await supabase
+          .from("hrs")
+          .select("user_id, position_title")
+          .eq("company_id", job.company.id);
+
+        if (error) {
+          console.error("Error fetching recruiters:", error);
+          setRecruiters([]);
+        } else {
+          // map to the format used in UI
+          const mapped =
+            data?.map((r) => ({
+              user_id: r.user_id,
+              position_title: r.position_title,
+              company: {
+                id: job.company.id,
+                name:
+                  "@" +
+                  job.company.name[0].toUpperCase() +
+                  job.company.name.slice(1).toLowerCase(),
+              }, // reuse current job.company
+            })) ?? [];
+
+          setRecruiters(mapped);
+        }
+      } catch (err) {
+        console.error("Unexpected error fetching recruiters:", err);
+        setRecruiters([]);
+      } finally {
+        setLoading(false);
+      }
     }
-    fetchRecruiters();
-  }, [job.company_name]);
+
+    if (job.company?.id) fetchRecruiters();
+  }, [job.company?.id]);
+
+  const handleJobApplication = async () => {
+    if (nbProposals <= 0) {
+      console.log("You've hit your limits! You cant apply for this job now.");
+      return;
+    }
+    
+    if (isApplied) {
+      console.log("You have already applied for this job.");
+      alert("You have already applied for this job.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("job_applications")
+        .insert({
+          job_id: job.id,
+          candidate_id: user!.id,
+          status_id: 3, // Assuming 3 is the status for "Pending"
+        });
+
+      if (error) {
+        console.error("Error applying for job:", error);
+        alert("Failed to apply for the job. Please try again later.");
+      } else {
+        // Decrease the number of proposals left
+        await supabase
+          .from("candidates")
+          .update({ nb_proposals: nbProposals - 1 })
+          .eq("user_id", user!.id);
+
+        // Notify user of successful application
+        console.log("Application submitted successfully!");
+        alert("Application submitted successfully!");
+
+        // Update local profile state
+        if (profile && "nb_proposals" in profile) {
+          setProfile({
+            ...profile,
+            nb_proposals: (profile.nb_proposals ?? 0) - 1,
+          });
+        }
+        // Update local state
+        setNbProposals((prev) => prev - 1);
+        setIsApplied(true);
+      }
+    } catch (err) {
+      console.error("Unexpected error applying for job:", err);
+      alert("An unexpected error occurred. Please try again later.");
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'open': return '#4caf50';
-      case 'closed': return '#f44336';
-      case 'paused': return '#ff9800';
-      default: return '#2196f3';
+      case "open":
+        return "#4caf50";
+      case "closed":
+        return "#f44336";
+      case "paused":
+        return "#ff9800";
+      default:
+        return "#2196f3";
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -60,26 +170,39 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({ job })
         <Text style={styles.title} numberOfLines={2}>
           {job.title}
         </Text>
-        
+
         <View style={styles.metaRow}>
           <View style={styles.companySection}>
             <MaterialCommunityIcons name="domain" size={16} color="#cfcfba" />
-            <Text style={styles.companyText}>{job.company_name}</Text>
+            <Text style={styles.companyText}>{job.company.name}</Text>
           </View>
-          
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(job.status) }]}>
+
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(job.status.name) },
+            ]}
+          >
             <MaterialCommunityIcons
-              name={job.status?.toLowerCase() === "open" ? "briefcase-check" : "briefcase"}
+              name={
+                job.status.name?.toLowerCase() === "open"
+                  ? "briefcase-check"
+                  : "briefcase"
+              }
               size={12}
               color="#fff"
             />
-            <Text style={styles.statusText}>{job.status?.toUpperCase() || 'OPEN'}</Text>
+            <Text style={styles.statusText}>
+              {job.status?.name.toUpperCase() || "OPEN"}
+            </Text>
           </View>
         </View>
 
         <View style={styles.dateRow}>
           <MaterialCommunityIcons name="calendar" size={14} color="#bdbdbd" />
-          <Text style={styles.dateText}>Posted {formatDate(job.created_at)}</Text>
+          <Text style={styles.dateText}>
+            Posted {formatDate(job.created_at)}
+          </Text>
         </View>
       </View>
 
@@ -97,7 +220,7 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({ job })
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Category</Text>
-            <Text style={styles.detailValue}>{job.category_name}</Text>
+            <Text style={styles.detailValue}>{job.category.name}</Text>
           </View>
         </View>
       </View>
@@ -109,7 +232,7 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({ job })
           <View style={styles.skillsContainer}>
             {job.skills.map((skill, index) => (
               <View key={index} style={styles.skillChip}>
-                <Text style={styles.skillText}>{skill}</Text>
+                <Text style={styles.skillText}>{skill.name}</Text>
               </View>
             ))}
           </View>
@@ -121,24 +244,25 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({ job })
         <Pressable
           style={[
             styles.applyButton,
-            nbProposals <= 0 && styles.applyButtonDisabled
+            (nbProposals <= 0 || isApplied) && styles.applyButtonDisabled,
           ]}
           disabled={nbProposals <= 0}
-          onPress={() => alert("Apply pressed")}
+          onPress={handleJobApplication}
         >
-          <MaterialCommunityIcons 
-            name="send" 
-            size={20} 
-            color={nbProposals <= 0 ? "#666" : "#fff"} 
-          />
-          <Text style={[
-            styles.applyButtonText,
-            nbProposals <= 0 && styles.applyButtonTextDisabled
-          ]}>
-            Apply ({nbProposals} proposals left)
+          {!isApplied && <MaterialCommunityIcons
+            name="send"
+            size={20}
+            color={nbProposals <= 0 ? "#666" : "#fff"}
+          />}
+          <Text
+            style={[
+              styles.applyButtonText,
+            ]}
+          >
+            {!isApplied ? <Text>Apply</Text> : <Text>Applied</Text>} ({nbProposals} proposals left)
           </Text>
         </Pressable>
-        
+
         {nbProposals <= 0 && (
           <Text style={styles.noProposalsText}>
             You've used all your proposals for this period
@@ -160,19 +284,31 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({ job })
               <View key={index} style={styles.recruiterCard}>
                 <View style={styles.recruiterInfo}>
                   <View style={styles.recruiterAvatar}>
-                    <MaterialCommunityIcons name="account" size={20} color="#7c4dff" />
+                    <MaterialCommunityIcons
+                      name="account"
+                      size={20}
+                      color="#7c4dff"
+                    />
                   </View>
                   <View style={styles.recruiterDetails}>
-                    <Text style={styles.recruiterName}>{recruiter.position_title}</Text>
-                    <Text style={styles.recruiterCompany}>{recruiter.company_name}</Text>
+                    <Text style={styles.recruiterName}>
+                      {recruiter.position_title}
+                    </Text>
+                    <Text style={styles.recruiterCompany}>
+                      {recruiter.company?.name}
+                    </Text>
                   </View>
                 </View>
-                
+
                 <Pressable
                   style={styles.messageButton}
                   onPress={() => alert(`Message ${recruiter.position_title}`)}
                 >
-                  <MaterialCommunityIcons name="message" size={16} color="#7c4dff" />
+                  <MaterialCommunityIcons
+                    name="message"
+                    size={16}
+                    color="#7c4dff"
+                  />
                   <Text style={styles.messageButtonText}>Message</Text>
                 </Pressable>
               </View>
@@ -303,8 +439,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   applyButtonDisabled: {
-    backgroundColor: "#444",
-    shadowOpacity: 0,
+    backgroundColor: "rgba(124, 77, 255, 0.2)",
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   applyButtonText: {
     color: "#fff",
@@ -313,7 +450,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   applyButtonTextDisabled: {
-    color: "#666",
+    backgroundColor: "#666",
+    color: "#aaa",
   },
   noProposalsText: {
     color: "#f44336",

@@ -1,16 +1,16 @@
 import { summarizeCVToForm } from "@/services/geminiSummarizer";
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { OnboardingForm } from "@/types/entities";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiText } from "moti";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    View,
 } from "react-native";
 import { Button, ProgressBar, Text } from "react-native-paper";
 

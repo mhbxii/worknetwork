@@ -1,5 +1,7 @@
+import { supabase } from "@/lib/supabase";
+import { MetaOption, useMetaStore } from "@/store/useMetaStore";
 import { Job } from "@/types/entities";
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -9,48 +11,169 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
 } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 interface RecruiterJobDetailsProps {
   job: Job;
 }
 
-const STATUS_OPTIONS = ['open', 'closed', 'paused'];
-const CATEGORY_OPTIONS = ['Engineering', 'Marketing', 'Design', 'Sales', 'HR', 'Operations'];
-
-export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job }) => {
+export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
+  job,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Job>({ ...job });
   const [isSaving, setIsSaving] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [newSkill, setNewSkill] = useState('');
+
+  const { statusOptions, categoryOptions, DbSkills } = useMetaStore.getState();
+  const [skillQuery, setSkillQuery] = useState("");
+  const [allSkills, setAllSkills] = useState<MetaOption[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
+
+  // Search handler
+  const handleSearchSkills = (newPrompt: string) => {
+    setSkillQuery(newPrompt);
+    if (!newPrompt.length) {
+      setAllSkills([]);
+      return;
+    }
+
+    const query = newPrompt.toLowerCase();
+    const prefixMatches = DbSkills.filter((skill) =>
+      skill.name.toLowerCase().startsWith(query)
+    );
+    const substringMatches = DbSkills.filter(
+      (skill) =>
+        !skill.name.toLowerCase().startsWith(query) &&
+        skill.name.toLowerCase().includes(query)
+    );
+    const combinedMatches = [...prefixMatches, ...substringMatches].slice(0, 3);
+
+    setAllSkills(combinedMatches);
+  };
+
+  // Add skill by ID
+  const addSkill = (skill: MetaOption) => {
+    if (!editedJob.skills?.includes(skill)) {
+      setEditedJob({
+        ...editedJob,
+        skills: [...(editedJob.skills || []), skill],
+      });
+    }
+    setSkillQuery("");
+    //setAllSkills([]);
+  };
+
+  // Remove skill by ID
+  const removeSkill = (skill: MetaOption) => {
+    setEditedJob({
+      ...editedJob,
+      skills:
+        editedJob.skills?.filter((currSkill) => currSkill !== skill) || [],
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'open': return '#4caf50';
-      case 'closed': return '#f44336';
-      case 'paused': return '#ff9800';
-      default: return '#2196f3';
+      case "open":
+        return "#4caf50";
+      case "closed":
+        return "#f44336";
+      case "paused":
+        return "#ff9800";
+      default:
+        return "#2196f3";
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    setIsEditing(false);
-    alert('Job updated successfully!');
+    try {
+      setIsSaving(true);
+
+      // Map name → ID
+      const statusId = statusOptions.find(
+        (s) => s.name === editedJob.status.name
+      )?.id;
+      const categoryId = categoryOptions.find(
+        (c) => c.name === editedJob.category.name
+      )?.id;
+
+      if (!statusId || !categoryId) {
+        throw new Error("Invalid status or category selection");
+      }
+
+      const { error } = await supabase
+        .from("jobs")
+        .update({
+          title: editedJob.title,
+          description: editedJob.description,
+          status_id: statusId,
+          job_category_id: categoryId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editedJob.id);
+
+      if (error) throw error;
+
+      // Fetch current skills from DB
+      const { data: currentSkills, error: fetchError } = await supabase
+        .from("job_skills")
+        .select("skill_id")
+        .eq("job_id", editedJob.id);
+
+      if (fetchError) throw fetchError;
+
+      const currentSkillIds = currentSkills.map((s) => s.skill_id);
+      const newSkillIds = editedJob.skills?.map((s) => s.id);
+
+      // Figure out differences
+      const skillsToAdd = newSkillIds?.filter(
+        (id) => !currentSkillIds.includes(id)
+      );
+      const skillsToRemove = currentSkillIds.filter(
+        (id) => !newSkillIds?.includes(id)
+      );
+
+      // Add new skills
+      if (skillsToAdd?.length) {
+        const { error: addError } = await supabase.from("job_skills").insert(
+          skillsToAdd.map((id) => ({
+            job_id: editedJob.id,
+            skill_id: id,
+          }))
+        );
+        if (addError) throw addError;
+      }
+
+      // Remove old skills
+      if (skillsToRemove.length) {
+        const { error: removeError } = await supabase
+          .from("job_skills")
+          .delete()
+          .eq("job_id", editedJob.id)
+          .in("skill_id", skillsToRemove);
+        if (removeError) throw removeError;
+      }
+
+      setIsEditing(false);
+      alert("Job updated successfully!");
+    } catch (err) {
+      console.error("Error updating job:", err);
+      alert("Failed to update job.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -58,107 +181,89 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
     setIsEditing(false);
   };
 
-  const addSkill = () => {
-    if (newSkill.trim() && !editedJob.skills?.includes(newSkill.trim())) {
-      setEditedJob({
-        ...editedJob,
-        skills: [...(editedJob.skills || []), newSkill.trim()]
-      });
-      setNewSkill('');
-    }
-  };
-
-  const removeSkill = (skillToRemove: string) => {
-    setEditedJob({
-      ...editedJob,
-      skills: editedJob.skills?.filter(skill => skill !== skillToRemove)
-    });
-  };
-
-  const EditableField = ({ 
-    label, 
-    value, 
-    onChangeText, 
-    multiline = false, 
-    placeholder = "" 
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    multiline?: boolean;
-    placeholder?: string;
-  }) => (
-    <View style={styles.fieldContainer}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={[styles.textInput, multiline && styles.textInputMultiline]}
-        value={value}
-        onChangeText={onChangeText}
-        multiline={multiline}
-        placeholder={placeholder}
-        placeholderTextColor="#666"
-      />
-    </View>
-  );
-
-  const ReadOnlyField = ({ label, value }: { label: string; value: string }) => (
-    <View style={styles.readOnlyField}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value}</Text>
-    </View>
-  );
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Section */}
       <View style={styles.header}>
         {isEditing ? (
-          <EditableField
-            label="Job Title"
-            value={editedJob.title}
-            onChangeText={(text) => setEditedJob({ ...editedJob, title: text })}
-            placeholder="Enter job title..."
-          />
+          <>
+            <Text style={styles.fieldLabel}>Job Title</Text>
+            <TextInput
+              style={[styles.textInput]}
+              value={editedJob.title}
+              onChangeText={(text) =>
+                setEditedJob({ ...editedJob, title: text })
+              }
+              placeholder="Enter job title..."
+              placeholderTextColor="#666"
+            />
+          </>
         ) : (
           <Text style={styles.title} numberOfLines={2}>
             {editedJob.title}
           </Text>
         )}
-        
+
         <View style={styles.metaRow}>
           <View style={styles.companySection}>
             <MaterialCommunityIcons name="domain" size={16} color="#cfcfba" />
-            <Text style={styles.companyText}>{editedJob.company_name}</Text>
+            <Text style={styles.companyText}>{editedJob.company.name}</Text>
           </View>
-          
+
           {isEditing ? (
-            <Pressable 
-              style={[styles.statusBadge, { backgroundColor: getStatusColor(editedJob.status) }]}
+            <Pressable
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(editedJob.status.name) },
+              ]}
               onPress={() => setShowStatusModal(true)}
             >
               <MaterialCommunityIcons
-                name={editedJob.status?.toLowerCase() === "open" ? "briefcase-check" : "briefcase"}
+                name={
+                  editedJob.status.name?.toLowerCase() === "open"
+                    ? "briefcase-check"
+                    : "briefcase"
+                }
                 size={12}
                 color="#fff"
               />
-              <Text style={styles.statusText}>{editedJob.status?.toUpperCase() || 'OPEN'}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={12} color="#fff" />
+              <Text style={styles.statusText}>
+                {editedJob.status.name?.toUpperCase() || "OPEN"}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={12}
+                color="#fff"
+              />
             </Pressable>
           ) : (
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(editedJob.status) }]}>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(editedJob.status.name) },
+              ]}
+            >
               <MaterialCommunityIcons
-                name={editedJob.status?.toLowerCase() === "open" ? "briefcase-check" : "briefcase"}
+                name={
+                  editedJob.status.name?.toLowerCase() === "open"
+                    ? "briefcase-check"
+                    : "briefcase"
+                }
                 size={12}
                 color="#fff"
               />
-              <Text style={styles.statusText}>{editedJob.status?.toUpperCase() || 'OPEN'}</Text>
+              <Text style={styles.statusText}>
+                {editedJob.status.name?.toUpperCase() || "OPEN"}
+              </Text>
             </View>
           )}
         </View>
 
         <View style={styles.dateRow}>
           <MaterialCommunityIcons name="calendar" size={14} color="#bdbdbd" />
-          <Text style={styles.dateText}>Posted {formatDate(editedJob.created_at)}</Text>
+          <Text style={styles.dateText}>
+            Posted {formatDate(editedJob.created_at)}
+          </Text>
         </View>
       </View>
 
@@ -168,8 +273,10 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
         {isEditing ? (
           <TextInput
             style={[styles.textInput, styles.textInputMultiline]}
-            value={editedJob.description || ''}
-            onChangeText={(text) => setEditedJob({ ...editedJob, description: text })}
+            value={editedJob.description || ""}
+            onChangeText={(text) =>
+              setEditedJob({ ...editedJob, description: text })
+            }
             multiline
             placeholder="Enter job description..."
             placeholderTextColor="#666"
@@ -186,20 +293,26 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
         <Text style={styles.sectionTitle}>Details</Text>
         <View style={styles.detailsGrid}>
           {isEditing ? (
-            <Pressable 
+            <Pressable
               style={styles.detailItem}
               onPress={() => setShowCategoryModal(true)}
             >
               <Text style={styles.detailLabel}>Category</Text>
               <View style={styles.selectableField}>
-                <Text style={styles.detailValue}>{editedJob.category_name}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={16} color="#cfcfba" />
+                <Text style={styles.detailValue}>
+                  {editedJob.category.name}
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={16}
+                  color="#cfcfba"
+                />
               </View>
             </Pressable>
           ) : (
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Category</Text>
-              <Text style={styles.detailValue}>{editedJob.category_name}</Text>
+              <Text style={styles.detailValue}>{editedJob.category.name}</Text>
             </View>
           )}
         </View>
@@ -207,39 +320,66 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
 
       {/* Skills Section */}
       <View style={styles.section}>
-        <View style={styles.skillsHeader}>
-          <Text style={styles.sectionTitle}>Required Skills</Text>
-          {isEditing && (
-            <Pressable onPress={addSkill} style={styles.addSkillButton}>
-              <MaterialCommunityIcons name="plus" size={16} color="#7c4dff" />
-            </Pressable>
-          )}
-        </View>
-        
+        <Text style={styles.sectionTitle}>
+          Required Skills ({editedJob.skills?.length || 0})
+        </Text>
+
         {isEditing && (
-          <View style={styles.skillInputContainer}>
+          <>
             <TextInput
               style={styles.skillInput}
-              value={newSkill}
-              onChangeText={setNewSkill}
-              placeholder="Add a skill..."
-              placeholderTextColor="#666"
-              onSubmitEditing={addSkill}
+              placeholder="Search skills..."
+              placeholderTextColor="#888"
+              value={skillQuery}
+              onChangeText={handleSearchSkills}
             />
-          </View>
-        )}
 
+            {loadingSkills && (
+              <ActivityIndicator
+                color="#7c4dff"
+                style={{ marginVertical: 8 }}
+              />
+            )}
+
+            {allSkills.length > 0 && skillQuery.length > 0 && (
+              <View style={styles.skillSuggestions}>
+                {allSkills.map((skill) => (
+                  <TouchableOpacity
+                    key={skill.id}
+                    onPress={() => addSkill(skill)}
+                    style={styles.suggestionButton}
+                  >
+                    <Text style={styles.suggestionText}>{skill.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+        {/*skill chips*/}
         <View style={styles.skillsContainer}>
-          {editedJob.skills?.map((skill, index) => (
-            <View key={index} style={styles.skillChip}>
-              <Text style={styles.skillText}>{skill}</Text>
-              {isEditing && (
-                <Pressable onPress={() => removeSkill(skill)} style={styles.removeSkillButton}>
-                  <MaterialCommunityIcons name="close" size={12} color="#7c4dff" />
-                </Pressable>
-              )}
-            </View>
-          ))}
+          {editedJob.skills?.map((editedJobskill) => {
+            const skill = DbSkills.find((s) => s.id === editedJobskill.id);
+            return (
+              <View key={editedJobskill.id} style={styles.skillChip}>
+                <Text style={styles.skillText}>
+                  {skill?.name || `Skill #${editedJobskill.id}`}
+                </Text>
+                {isEditing && (
+                  <Pressable
+                    onPress={() => removeSkill(editedJobskill)}
+                    style={styles.removeSkillButton}
+                  >
+                    <MaterialCommunityIcons
+                      name="close"
+                      size={12}
+                      color="#7c4dff"
+                    />
+                  </Pressable>
+                )}
+              </View>
+            );
+          })}
         </View>
       </View>
 
@@ -252,9 +392,11 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
               onPress={handleCancel}
             >
               <MaterialCommunityIcons name="close" size={20} color="#f44336" />
-              <Text style={[styles.actionButtonText, { color: '#f44336' }]}>Cancel</Text>
+              <Text style={[styles.actionButtonText, { color: "#f44336" }]}>
+                Cancel
+              </Text>
             </Pressable>
-            
+
             <Pressable
               style={[styles.actionButton, styles.saveButton]}
               onPress={handleSave}
@@ -263,10 +405,14 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
               {isSaving ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <MaterialCommunityIcons name="content-save" size={20} color="#fff" />
+                <MaterialCommunityIcons
+                  name="content-save"
+                  size={20}
+                  color="#fff"
+                />
               )}
-              <Text style={[styles.actionButtonText, { color: '#fff' }]}>
-                {isSaving ? 'Saving...' : 'Save Changes'}
+              <Text style={[styles.actionButtonText, { color: "#fff" }]}>
+                {isSaving ? "Saving..." : "Save Changes"}
               </Text>
             </Pressable>
           </View>
@@ -276,7 +422,9 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
             onPress={() => setIsEditing(true)}
           >
             <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
-            <Text style={[styles.actionButtonText, { color: '#fff' }]}>Edit Job</Text>
+            <Text style={[styles.actionButtonText, { color: "#fff" }]}>
+              Edit Job
+            </Text>
           </Pressable>
         )}
       </View>
@@ -291,24 +439,33 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Status</Text>
-            {STATUS_OPTIONS.map(status => (
+            {statusOptions.map((status) => (
               <Pressable
-                key={status}
+                key={status.id}
                 style={[
                   styles.modalOption,
-                  editedJob.status === status && styles.modalOptionSelected
+                  editedJob.status.name === status.name &&
+                    styles.modalOptionSelected,
                 ]}
                 onPress={() => {
-                  setEditedJob({ ...editedJob, status });
+                  setEditedJob({ ...editedJob, status: status });
                   setShowStatusModal(false);
                 }}
               >
-                <View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]} />
-                <Text style={[
-                  styles.modalOptionText,
-                  editedJob.status === status && styles.modalOptionTextSelected
-                ]}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                <View
+                  style={[
+                    styles.statusDot,
+                    { backgroundColor: getStatusColor(status.name) },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    editedJob.status.name === status.name &&
+                      styles.modalOptionTextSelected,
+                  ]}
+                >
+                  {status.name.charAt(0).toUpperCase() + status.name.slice(1)}
                 </Text>
               </Pressable>
             ))}
@@ -326,23 +483,27 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({ job })
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Category</Text>
-            {CATEGORY_OPTIONS.map(category => (
+            {categoryOptions.map((category) => (
               <Pressable
-                key={category}
+                key={category.id}
                 style={[
                   styles.modalOption,
-                  editedJob.category_name === category && styles.modalOptionSelected
+                  editedJob.category.name === category.name &&
+                    styles.modalOptionSelected,
                 ]}
                 onPress={() => {
-                  setEditedJob({ ...editedJob, category_name: category });
+                  setEditedJob({ ...editedJob, category: category });
                   setShowCategoryModal(false);
                 }}
               >
-                <Text style={[
-                  styles.modalOptionText,
-                  editedJob.category_name === category && styles.modalOptionTextSelected
-                ]}>
-                  {category}
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    editedJob.category.name === category.name &&
+                      styles.modalOptionTextSelected,
+                  ]}
+                >
+                  {category.name}
                 </Text>
               </Pressable>
             ))}
@@ -473,6 +634,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
+    marginBottom: 15,
   },
   skillsContainer: {
     flexDirection: "row",
@@ -612,5 +774,31 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+
+  skillSuggestions: {
+    backgroundColor: "#1e1e1e",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#333",
+    marginTop: 4,
+    overflow: "hidden",
+  },
+
+  suggestionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+
+  suggestionText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+
+  // Optional: Remove bottom border for last suggestion
+  suggestionButtonLast: {
+    borderBottomWidth: 0,
   },
 });

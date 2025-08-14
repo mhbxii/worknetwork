@@ -1,6 +1,6 @@
 // src/services/geminiSummarizer.ts
 import { supabase } from "@/lib/supabase";
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { OnboardingForm } from "@/types/entities";
 
 export interface Project {
   name: string;

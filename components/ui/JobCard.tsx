@@ -49,7 +49,7 @@ const JobCard: React.FC<Props> = ({
   onLongPress,
   applied = false,
 }) => {
-  const isClosed = (job.status || "").toLowerCase() === "closed";
+  const isClosed = (job.status.name || "").toLowerCase() === "closed";
   const skills = job.skills ?? [];
   const showOverflow = skills.length > 4;
 
@@ -97,12 +97,12 @@ const JobCard: React.FC<Props> = ({
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: statusColor(job.status) },
+                    { backgroundColor: statusColor(job.status.name) },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name={
-                      (job.status || "").toLowerCase() === "open"
+                      (job.status.name || "").toLowerCase() === "open"
                         ? "briefcase-check"
                         : "briefcase"
                     }
@@ -110,7 +110,7 @@ const JobCard: React.FC<Props> = ({
                     color="#fff"
                   />
                   <Text style={styles.statusText}>
-                    {(job.status || "open").toUpperCase()}
+                    {(job.status.name || "open").toUpperCase()}
                   </Text>
                 </View>
 
@@ -157,7 +157,7 @@ const JobCard: React.FC<Props> = ({
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {s}
+                    {s.name}
                   </Text>
                 </View>
               ))}

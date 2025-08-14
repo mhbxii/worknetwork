@@ -1,10 +1,12 @@
 import { useAuth } from "@/store/authStore";
+import { ScrollView } from "react-native-gesture-handler";
 import { Button, Text } from "react-native-paper";
 
 export default function Profile() {
   const { profile, initialized, signOut } = useAuth(); // or however you store auth info
 
   return (
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
     <>
       {!initialized ? (
         <Text>Loading...</Text>
@@ -17,5 +19,6 @@ export default function Profile() {
         <Text>Error: User profile not found.</Text>
       )}
     </>
+    </ScrollView>
   );
 }

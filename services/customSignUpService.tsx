@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { OnboardingForm } from "@/types/entities";
 import "react-native-url-polyfill/auto";
 
 export async function signUpCandidate(form: OnboardingForm) {
@@ -7,16 +7,16 @@ export async function signUpCandidate(form: OnboardingForm) {
     email,
     password,
     name,
-    country_id,
+    country,
     job_title,
     experiences,
     projects,
     skills,
-    job_category_id,
+    job_category,
   } = form;
 
   // 0️⃣ Validate required fields
-  if (!email || !password || !name || !country_id || !job_category_id) {
+  if (!email || !password || !name || !country || !job_category) {
     throw new Error("Missing required fields");
   }
 
@@ -38,7 +38,7 @@ export async function signUpCandidate(form: OnboardingForm) {
       name,
       email,
       role_id: 1, // Candidate
-      country_id,
+      country_id: country.id,
     })
     .select()
     .single();
@@ -50,7 +50,7 @@ export async function signUpCandidate(form: OnboardingForm) {
     .insert({
       user_id: userData.id,
       job_title: job_title || null,
-      job_category_id,
+      job_category_id: job_category.id,
     })
     .select()
     .single();
@@ -60,7 +60,7 @@ export async function signUpCandidate(form: OnboardingForm) {
 
   // 4️⃣ Insert skills
   if (skills?.length) {
-    const skillRows = skills.map((skill_id) => ({ candidate_id, skill_id }));
+    const skillRows = skills.map((skill) => ({ candidate_id, skill_id: skill.id }));
     const { error: skillError } = await supabase
       .from("candidate_skills")
       .insert(skillRows);
@@ -93,7 +93,7 @@ export async function signUpCandidate(form: OnboardingForm) {
       const { data: existingCompany, error: searchError } = await supabase
         .from("companies")
         .select("id")
-        .eq("name", e.company_name.trim().toLowerCase())
+        .eq("name", e.company?.name.trim().toLowerCase())
         .maybeSingle();
 
       if (searchError) throw new Error(searchError.message);
@@ -104,7 +104,7 @@ export async function signUpCandidate(form: OnboardingForm) {
         // 2️ Insert new company
         const { data: newCompany, error: insertError } = await supabase
           .from("companies")
-          .insert({ name: e.company_name.trim().toLowerCase() })
+          .insert({ name: e.company?.name.trim().toLowerCase() })
           .select("id")
           .single();
 
@@ -133,16 +133,13 @@ export async function signUpCandidate(form: OnboardingForm) {
   return {
     user: userData, // base user from public.users
     profile: {
-      role: "candidate" as const,
-      data: {
         job_title: candidateData.job_title,
         experiences, // pass from input or fetch fresh if you want consistency
         projects,
         skills,
-        job_category_id: candidateData.job_category_id,
+        job_category: candidateData.job_category,
         nb_proposals: candidateData.nb_proposals || null, // if you track proposals
       },
-    },
   };
 }
 
@@ -151,9 +148,8 @@ export async function signUpRecruiter(form: OnboardingForm) {
     email,
     password,
     name,
-    country_id,
-    company_id,
-    company_name,
+    country,
+    company,
     position_title,
   } = form;
 
@@ -162,8 +158,8 @@ export async function signUpRecruiter(form: OnboardingForm) {
     !email ||
     !password ||
     !name ||
-    !country_id ||
-    (!company_id && !company_name)
+    !country?.id ||
+    (!company?.id && !company?.name)
   ) {
     throw new Error("Missing required fields");
   }
@@ -186,21 +182,21 @@ export async function signUpRecruiter(form: OnboardingForm) {
       name,
       email,
       role_id: 2, // Recruiter
-      country_id,
+      country_id: country.id,
     })
     .select()
     .single();
   if (userError) throw new Error(userError.message);
 
   // 3️⃣ Determine company_id, check existing company first
-  let finalCompanyId = company_id;
+  let finalCompanyId = company.id;
 
-  if (!finalCompanyId && company_name) {
+  if (!finalCompanyId && company.name) {
     // Search existing company (case-insensitive)
     const { data: existingCompany, error: findError } = await supabase
       .from("companies")
       .select("id, name")
-      .ilike("name", company_name.trim())
+      .ilike("name", company.name.trim())
       .limit(1)
       .single();
 
@@ -216,7 +212,7 @@ export async function signUpRecruiter(form: OnboardingForm) {
       const { data: companyData, error: companyError } = await supabase
         .from("companies")
         .insert({
-          name: company_name.trim().toLowerCase(),
+          name: company.name.trim().toLowerCase(),
         })
         .select("id")
         .single();
@@ -240,12 +236,8 @@ export async function signUpRecruiter(form: OnboardingForm) {
   return {
     user: userData,
     profile: {
-      role: "recruiter" as const,
-      data: {
-        company_id: finalCompanyId,
-        company_name: company_name,
+        company: {id: finalCompanyId, name: company.name},
         position_title: hrData.position_title,
-      },
     },
   };
 }

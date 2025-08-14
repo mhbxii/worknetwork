@@ -9,7 +9,7 @@ import { MD3DarkTheme, MD3LightTheme, Provider as PaperProvider } from 'react-na
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import "@/services/authInit"; // makes sure authInit runs once
+import { initAuth } from "@/services/authInit";
 import { useAuth } from '@/store/authStore';
 import { useEffect } from 'react';
 
@@ -18,10 +18,14 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { profile, initialized } = useAuth(); // ✅ use initialized from store
-
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useEffect(() => {
+    const cleanup = initAuth();
+    return cleanup;
+  }, []);
 
   // 🔹 Redirect logic
   useEffect(() => {

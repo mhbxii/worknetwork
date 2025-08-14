@@ -1,27 +1,46 @@
 import { supabase } from "@/lib/supabase";
+import { fetchUser } from "@/services/userService";
 import { useAuth } from "@/store/authStore";
-import { fetchUser } from "./userService";
 
-// 1️⃣ Immediately check persisted session on app load
-supabase.auth.getSession().then(({ data: { session } }) => {
+export function initAuth() {
   const auth = useAuth.getState();
-  auth.setSession(session);
-  if (session?.user) fetchUser().finally(() => auth.setInitialized(true));
-  else {
-    auth.setUser(null);
-    auth.setInitialized(true);
-  }
-});
+  let firstAuthChange = true; // 🚀 prevents duplicate fetch
 
-// 2️⃣ Subscribe to future session changes
-let subscribed = false;
-
-if (!subscribed) {
-  subscribed = true;
-  supabase.auth.onAuthStateChange((_event, session) => {
-    const auth = useAuth.getState();
+  // 1️⃣ Load existing session first
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
     auth.setSession(session);
-    if (session?.user) fetchUser();
-    else auth.setUser(null);
+
+    if (session?.user) {
+      await fetchUser();
+    } else {
+      auth.setUser(null);
+      auth.setProfile(null);
+    }
+
+    auth.setInitialized(true);
   });
+
+  // 2️⃣ Listen for auth changes
+  const { data: subscription } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      if (firstAuthChange) {
+        firstAuthChange = false;
+        return; // ⛔ skip first duplicate trigger
+      }
+
+      auth.setSession(session);
+
+      if (session?.user) {
+        await fetchUser();
+      } else {
+        auth.setUser(null);
+        auth.setProfile(null);
+      }
+    }
+  );
+
+  // 3️⃣ Cleanup
+  return () => {
+    subscription?.subscription?.unsubscribe();
+  };
 }

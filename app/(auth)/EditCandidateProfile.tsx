@@ -1,8 +1,8 @@
 import CategorySelector from "@/components/ui/JobCategorySelector";
-import { supabase } from "@/lib/supabase";
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { MetaOption, useMetaStore } from "@/store/useMetaStore";
+import { OnboardingForm } from "@/types/entities";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -27,54 +27,15 @@ interface Props {
 }
 
 export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
-  const [DbSkills, setDbSkills] = useState<{ id: number; name: string }[]>([]);
-  const [allSkills, setAllSkills] = useState<{ id: number; name: string }[]>(
+ 
+  const [allSkills, setAllSkills] = useState<MetaOption[]>(
     []
   );
   const [skillQuery, setSkillQuery] = useState("");
   const [loadingSkills, setLoadingSkills] = useState(false);
-  const [DbJobCategories, setDbJobCategories] = useState<
-    { label: string; value: number }[]
-  >([]);
+  const { categoryOptions, DbSkills } = useMetaStore.getState();
   const [loadingCategories, setLoadingCategories] = useState(false);
   let clicked = false;
-
-  // === Fetch job categories from DB ===
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true);
-        const { data, error } = await supabase
-          .from("job_categories")
-          .select("id, name");
-        if (error) throw error;
-        setDbJobCategories(data.map((c) => ({ label: c.name, value: c.id })));
-      } catch (err) {
-        console.error("Error fetching job categories:", err);
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  // === Fetch skills from Supabase ===
-  useEffect(() => {
-    let active = true;
-    const fetchSkills = async () => {
-      setLoadingSkills(true);
-      const { data, error } = await supabase
-        .from("skills")
-        .select("*")
-        .order("name");
-      if (!error && active) setDbSkills(data || []);
-      setLoadingSkills(false);
-    };
-    fetchSkills();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const handleSearchSkills = (newPrompt: string) => {
     setSkillQuery(newPrompt);
@@ -112,8 +73,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
       experiences: [
         ...form.experiences,
         {
-          company_id: null,
-          company_name: "",
+          company: null,
           job_title: "",
           start_date: "",
           end_date: "",
@@ -161,17 +121,17 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
 
   // === Skill Handlers ===
   const addSkill = useCallback(
-    (id: number) => {
-      if (!form.skills.includes(id) && form.skills.length < 15) {
-        setForm({ ...form, skills: [...form.skills, id] });
+    (skill: MetaOption) => {
+      if (form.skills && !form.skills.includes(skill) && form.skills.length < 15) {
+        setForm({ ...form, skills: [...form.skills, skill] });
       }
     },
     [form, setForm]
   );
 
   const removeSkill = useCallback(
-    (id: number) => {
-      setForm({ ...form, skills: form.skills.filter((s) => s !== id) });
+    (skill: MetaOption) => {
+      setForm({ ...form, skills: form.skills?.filter((s) => s !== skill) || null });
     },
     [form, setForm]
   );
@@ -200,15 +160,15 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
               />
             ) : (
               <CategorySelector
-                categories={DbJobCategories}
-                selectedValue={form.job_category_id}
+                categories={categoryOptions}
+                selectedValue={form.job_category?.id || null}
                 onSelect={(value) =>
-                  setForm({ ...form, job_category_id: value })
+                  setForm({ ...form, job_category: value ? { id: value, name: categoryOptions.find((category) => category.id === value)?.name || "" } : null })
                 }
               />
             )}
 
-            {!form.job_category_id && (
+            {!form.job_category && (
               <HelperText type="info">
                 Please select your field of expertise
               </HelperText>
@@ -262,7 +222,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 style={styles.input}
                 placeholder="Company Name"
                 placeholderTextColor="#888"
-                value={exp.company_name}
+                value={exp.company?.name}
                 onChangeText={(text) =>
                   updateExperience(index, "company_name", text)
                 }
@@ -382,7 +342,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
           {/* Skills Section */}
           <Surface style={styles.section} elevation={1}>
             <Text style={styles.sectionTitle}>
-              Skills ({form.skills.length})
+              Skills ({form.skills?.length || 0})
             </Text>
 
             <TextInput
@@ -402,7 +362,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 {allSkills.map((skill) => (
                   <TouchableOpacity
                     key={skill.id}
-                    onPress={() => addSkill(skill.id)}
+                    onPress={() => addSkill(skill)}
                     style={styles.suggestionButton}
                   >
                     <Text style={styles.suggestionText}>{skill.name}</Text>
@@ -412,16 +372,16 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
             )}
 
             <View style={styles.skillChips}>
-              {form.skills.map((skillId) => {
-                const skill = DbSkills.find((s) => s.id === skillId);
+              {form.skills?.map((skillId) => {
+                const skill = DbSkills.find((s) => s === skillId);
                 return (
                   <TouchableOpacity
-                    key={skillId}
+                    key={skillId.id}
                     onPress={() => removeSkill(skillId)}
                     style={styles.skillChipButton}
                   >
                     <Text style={styles.suggestionText}>
-                      {skill?.name || `Skill #${skillId}`}
+                      {skill?.name || `Skill #${skillId.id}`}
                     </Text>
                     <IconButton
                       icon="close"

@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { HapticTab } from "@/components/HapticTab";
@@ -7,10 +7,17 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useMetaStore } from "@/store/useMetaStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable } from "react-native-gesture-handler";
 
 export default function TabLayout() {
+  const fetchMeta = useMetaStore((s) => s.fetchMeta);
+
+  useEffect(() => {
+    fetchMeta(); // load once
+  }, []);
+
   const colorScheme = useColorScheme();
 
   const AddJobBtn = () => (

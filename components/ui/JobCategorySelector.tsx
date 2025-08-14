@@ -1,14 +1,11 @@
+import { MetaOption } from "@/store/useMetaStore";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "react-native-paper";
 
-interface Category {
-  label: string;
-  value: number;
-}
 
 interface Props {
-  categories: Category[];
+  categories: MetaOption[];
   selectedValue: number | null;
   onSelect: (value: number) => void;
 }
@@ -20,7 +17,7 @@ export default function CategorySelector({
 }: Props) {
   const [search, setSearch] = useState("");
   const [filteredCategories, setFilteredCategories] =
-    useState<Category[]>(categories);
+    useState<MetaOption[]>(categories);
   const [jobCategories, setJobCategories] = useState<
     { label: string; value: number }[]
   >([]);
@@ -28,7 +25,7 @@ export default function CategorySelector({
   useEffect(() => {
     setFilteredCategories(
       categories
-        .filter((cat) => cat.label.toLowerCase().includes(search.toLowerCase()))
+        .filter((cat) => cat.name.toLowerCase().includes(search.toLowerCase()))
         .slice(0, 5)
     );
   }, [search, categories]);
@@ -48,7 +45,7 @@ export default function CategorySelector({
       <View style={styles.dropdown}>
         {filteredCategories.map((cat) => (
           <View
-            key={cat.value}
+            key={cat.id}
             style={{
               paddingHorizontal: 4,
               marginVertical: 4,
@@ -56,19 +53,19 @@ export default function CategorySelector({
             }}
           >
             <Button
-              mode={selectedValue === cat.value ? "contained" : "outlined"}
+              mode={selectedValue === cat.id ? "contained" : "outlined"}
               onPress={() => {
-                onSelect(cat.value);
+                onSelect(cat.id);
               }}
               style={{ borderRadius: 12, minWidth: 80 }} // optional min width
               contentStyle={{ flexDirection: "row", justifyContent: "center" }}
             >
               <Text
                 style={{
-                  color: selectedValue === cat.value ? "white" : "#888",
+                  color: selectedValue === cat.id ? "white" : "#888",
                 }}
               >
-                {cat.label}
+                {cat.name}
               </Text>
             </Button>
           </View>

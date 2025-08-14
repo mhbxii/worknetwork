@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase";
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { useMetaStore } from "@/store/useMetaStore";
+import { OnboardingForm } from "@/types/entities";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiText } from "moti";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,32 +26,23 @@ interface Country {
 }
 
 export default function UserDetails({ form, setForm, onNext }: Props) {
-  const [countries, setCountries] = useState<Country[]>([]);
+  const { countryOptions } = useMetaStore();
   const [search, setSearch] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchCountries = async () => {
-      const { data, error } = await supabase
-        .from("country")
-        .select("*")
-        .order("name");
-      if (!error && data) setCountries(data);
-    };
-    fetchCountries();
-  }, []);
+  
 
-  const filtered = countries.filter((c) =>
+  const filtered = countryOptions.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
-  const selectedCountry = countries.find((c) => c.id === form.country_id);
+  const selectedCountry = countryOptions.find((c) => c.id === form.country?.id);
 
   // Dynamic segmented button colors
-  const roleTheme = (role: "candidate" | "recruiter") => ({
+  const roleTheme = (roleName: "candidate" | "recruiter") => ({
     colors: {
       secondaryContainer:
-        form.role === role
-          ? role === "candidate"
+        form.role.name === roleName
+          ? roleName === "candidate"
             ? "#4CAF50" // green
             : "#FF9800" // orange
           : "#333", // unselected background
@@ -93,9 +84,9 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
             {/* Role Selection */}
             <Text style={styles.label}>Select Role</Text>
             <SegmentedButtons
-              value={form.role}
+              value={form.role.name}
               onValueChange={(role) =>
-                setForm({ ...form, role: role as "candidate" | "recruiter" })
+                setForm({ ...form, role: {id: form.role.id ,name: role as "candidate" | "recruiter" } })
               }
               buttons={[
                 {
@@ -104,7 +95,7 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
                   icon: "account",
                   style: {
                     backgroundColor:
-                      form.role === "candidate" ? "#4CAF50" : "#333",
+                      form.role.name === "candidate" ? "#4CAF50" : "#333",
                   },
                   labelStyle: { color: "#fff" },
                 },
@@ -114,7 +105,7 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
                   icon: "briefcase",
                   style: {
                     backgroundColor:
-                      form.role === "recruiter" ? "#FF9800" : "#333",
+                      form.role.name === "recruiter" ? "#FF9800" : "#333",
                   },
                   labelStyle: { color: "#fff" },
                 },
@@ -146,15 +137,15 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
                   }}
                 >
                   <Button
-                    mode={form.country_id === c.id ? "contained" : "outlined"}
-                    onPress={() => setForm({ ...form, country_id: c.id })}
+                    mode={form.country === c ? "contained" : "outlined"}
+                    onPress={() => setForm({ ...form, country: c })}
                     style={{ borderRadius: 12 }}
                     contentStyle={{
                       flexDirection: "row",
                       justifyContent: "center",
                     }}
                   >
-                    <CountryFlag isoCode={c.code} size={18} />
+                    <CountryFlag isoCode={c.name} size={18} />
                     {/* Country Name <Text style={styles.countryName}> {c.name}</Text> */}
                   </Button>
                 </View>
@@ -166,7 +157,7 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
               mode="contained"
               onPress={onNext}
               style={styles.button}
-              disabled={!form.name || !form.country_id || !form.role}
+              disabled={!form.name || !form.country || !form.role}
             >
               Next
             </Button>

@@ -1,4 +1,4 @@
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { OnboardingForm } from "@/types/entities";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
@@ -28,8 +28,8 @@ export default function CompanyDetails({
           <TextInput
             label="Company name"
             mode="outlined"
-            value={form.company_name}
-            onChangeText={(text) => setForm({ ...form, company_name: text })}
+            value={form.company?.name}
+            onChangeText={(text) => setForm({ ...form, company: {id: form.company!.id , name: text }})}
             style={styles.input}
           />
 

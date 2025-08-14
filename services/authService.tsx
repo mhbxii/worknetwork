@@ -17,11 +17,6 @@ export async function signInWithEmail(email: string, password: string) {
   return data;
 }
 
-export async function signUpWithEmail(email: string, password: string) {
-    await alert('hello')
-}
-
-
 export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -40,9 +35,4 @@ export async function signInWithGoogle() {
   }
 
   return null; // OAuth is a redirect flow; session handled on return
-}
-
-export async function signOut() {
-  await supabase.auth.signOut();
-  useAuth.getState().clearAuth();
 }

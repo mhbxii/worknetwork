@@ -1,6 +1,6 @@
 import { signUpCandidate, signUpRecruiter } from "@/services/customSignUpService";
 import { useAuth } from "@/store/authStore";
-import { OnboardingForm } from "@/types/userDetailsForm";
+import { OnboardingForm } from "@/types/entities";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -25,17 +25,16 @@ export default function OnboardingFlow() {
     email: "",
     password: "",
     name: "",
-    role: "candidate",
-    country_id: null,
+    role: { id: 1, name: "candidate" },// Default to candidate},
+    country: null, // preload parsed CV here
   
     job_title: "",
     experiences: [],  // preload parsed CV here
     projects: [],     // preload parsed CV here
-    skills: [],
-    job_category_id: null,
+    skills: null,
+    job_category: null,
   
-    company_name: "",
-    company_id: null,
+    company: null, // for recruiters
     position_title: "",
   });
 
@@ -54,7 +53,7 @@ export default function OnboardingFlow() {
 
   const submit = async () => {
     try {
-      const result = form.role === "candidate"
+      const result = form.role.name === "candidate"
         ? await signUpCandidate(form)
         : await signUpRecruiter(form);
   
@@ -81,7 +80,7 @@ export default function OnboardingFlow() {
       setIsSignUp={setIsSignUp}
     />,
     <UserDetails key="details" form={form} setForm={setForm} onNext={next} />,
-    ...(form.role === "candidate"
+    ...(form.role.name === "candidate"
       ? [
           <CvParser key="cv" form={form} setForm={setForm} onNext={next} />,
           <EditCandidateProfile
