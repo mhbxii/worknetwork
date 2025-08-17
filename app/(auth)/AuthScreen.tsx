@@ -1,4 +1,4 @@
-import { OnboardingForm } from '@/types/userDetailsForm';
+import { OnboardingForm } from '@/types/entities';
 import { AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -26,8 +26,11 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
 
   const router = useRouter();
 
+  // In AuthScreen component
+  console.log("AuthScreen rendered at:", new Date().toISOString());
+
   const handleAuth = async () => {
-    if (!form.email || !form.password) {
+    if (!form?.email || !form.password) {
       setError('Please fill in all fields.');
       return;
     }
@@ -36,7 +39,7 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
       return;
     }
 
-    setError(null);
+    setError('');
     setLoading(true);
 
     try {
@@ -45,7 +48,7 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
       } else {
         // ✅ Normal login
         await signInWithEmail(form.email, form.password);
-        router.replace('/'); // navigate to main/index
+        // router.replace('/'); // navigate to main/index //double route redirection unneeded.
       }
     } catch (e: any) {
       setError(e.message);
@@ -83,7 +86,7 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
           <TextInput
             label="Email"
             mode="outlined"
-            value={form.email}
+            value={form?.email}
             onChangeText={(email) => setForm({ ...form, email })}
             keyboardType="email-address"
             autoCapitalize="none"

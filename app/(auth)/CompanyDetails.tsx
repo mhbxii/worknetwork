@@ -29,7 +29,7 @@ export default function CompanyDetails({
             label="Company name"
             mode="outlined"
             value={form.company?.name}
-            onChangeText={(text) => setForm({ ...form, company: {id: form.company!.id , name: text }})}
+            onChangeText={(text) => setForm({ ...form, company: {id: 0 , name: text }})}
             style={styles.input}
           />
 

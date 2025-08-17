@@ -31,8 +31,8 @@ export default memo(function Index() {
 
   // Create stable dependency key for effect
   const profileKey = useMemo(() => {
-    if (!profile || !user) return null;
-   
+    if (!profile || !user?.role?.name) return null; // Safe check
+    
     if (user.role.name === "candidate" && "job_category" in profile) {
       return `candidate_${profile.job_category?.id}`;
     } else if (user.role.name === "recruiter" && "company" in profile) {
@@ -48,10 +48,8 @@ export default memo(function Index() {
       reset();
       return;
     }
-
-    // Fetch jobs (will skip if already loading/loaded for this profile)
     fetchJobs(user, profile, false);
-  }, [user?.id, profileKey, fetchJobs, reset]);
+  }, [user, profile, profileKey, fetchJobs, reset]);
 
   // Refresh handler (force reload)
   const handleRefresh = useCallback(() => {

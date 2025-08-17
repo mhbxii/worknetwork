@@ -191,7 +191,7 @@ export async function signUpRecruiter(form: OnboardingForm) {
   // 3️⃣ Determine company_id, check existing company first
   let finalCompanyId = company.id;
 
-  if (!finalCompanyId && company.name) {
+  if (finalCompanyId==0 && company.name) {
     // Search existing company (case-insensitive)
     const { data: existingCompany, error: findError } = await supabase
       .from("companies")

@@ -30,25 +30,34 @@ function formatDate(iso?: string | Date | null) {
   return d.toLocaleDateString();
 }
 
+const getCandidatesBgColor = (count: number) => {
+  if (count < 5) return "#4caf50"; // green
+  if (count < 10) return "#8bc34a"; // light green
+  if (count < 15) return "#cddc39"; // lime
+  if (count < 20) return "#ffeb3b"; // yellow
+  if (count < 25) return "#ffc107"; // amber
+  if (count < 30) return "#ff9800"; // orange
+  if (count < 35) return "#ff5722"; // deep orange
+  if (count < 40) return "#f44336"; // red
+  if (count < 50) return "#e91e63"; // pink
+  return "#9c27b0"; // purple
+};
+
 const statusColor = (status?: string) => {
+
   switch ((status || "").toLowerCase()) {
     case "open":
-      return "#4caf50"; // green
+      return "#00bcd4"; // cyan - distinguishable from green candidates
     case "closed":
-      return "#9e9e9e"; // gray
+      return "#607d8b"; // blue gray - distinguishable from gray
     case "draft":
-      return "#ffb300"; // amber
+      return "#795548"; // brown - distinguishable from amber/orange
     default:
-      return "#7c4dff"; // accent
+      return "#673ab7"; // deep purple - distinguishable from your purple
   }
 };
 
-const JobCard: React.FC<Props> = ({
-  job,
-  onPress,
-  onLongPress,
-  applied = false,
-}) => {
+const JobCard: React.FC<Props> = ({ job, onPress, onLongPress }) => {
   const isClosed = (job.status.name || "").toLowerCase() === "closed";
   const skills = job.skills ?? [];
   const showOverflow = skills.length > 4;
@@ -59,7 +68,7 @@ const JobCard: React.FC<Props> = ({
         style={[
           styles.shadowWrapper,
           isClosed && styles.cardClosedWrapper,
-          applied && styles.cardAppliedWrapper,
+          job.applied && styles.cardAppliedWrapperGray,
           styles.cardContainer,
         ]}
       >
@@ -70,22 +79,21 @@ const JobCard: React.FC<Props> = ({
           style={({ pressed }) => [
             pressed && styles.cardPressed,
             isClosed && styles.cardClosed,
-            applied && styles.cardApplied,
           ]}
         >
           {/* left accent for applied */}
-          {applied && <View style={styles.appliedAccent} />}
+          {job.applied && <View style={styles.appliedAccent} />}
 
           <View style={styles.cardContent}>
             <Text
-              style={[styles.cardTitle, isClosed && styles.textClosed]}
+              style={[styles.cardTitle, isClosed && styles.textClosed, job.applied && !isClosed && styles.textAppliedGray]}
               numberOfLines={2}
             >
               {job.title}
             </Text>
 
             <Text
-              style={[styles.cardDescription, isClosed && styles.textClosed]}
+              style={[styles.cardDescription, isClosed && styles.textClosed, job.applied && !isClosed && styles.textAppliedGray]}
               numberOfLines={3}
               ellipsizeMode="tail"
             >
@@ -98,6 +106,7 @@ const JobCard: React.FC<Props> = ({
                   style={[
                     styles.statusBadge,
                     { backgroundColor: statusColor(job.status.name) },
+                    job.applied && { backgroundColor: "#999" },
                   ]}
                 >
                   <MaterialCommunityIcons
@@ -116,19 +125,37 @@ const JobCard: React.FC<Props> = ({
 
                 <View style={styles.dateWrap}>
                   <Text
-                    style={[styles.dateText, isClosed && styles.textClosed]}
+                     style={[styles.dateText, isClosed && styles.textClosed, job.applied && !isClosed && styles.textAppliedGray]}
                   >
                     • {formatDate(job.created_at)}
                   </Text>
                 </View>
               </View>
 
-              {/* Applied pill when candidate already applied */}
-              {applied ? (
+              {job.nb_candidates !== null && (
+                <View style={[
+                  styles.candidatesWrap,
+                  { backgroundColor: getCandidatesBgColor(job.nb_candidates || 0)}
+                ]}>
+                  <MaterialCommunityIcons
+                    name="account-group"
+                    size={13}
+                    color={isClosed ? "#9e9e9e" : "#fff"}
+                  />
+                  <Text
+                    style={[styles.nb_candidatesText, isClosed && styles.textClosed]}
+                  >
+                    {job.nb_candidates}
+                  </Text>
+                </View>
+              )}
+
+              {/* Applied pill when candidate already applied
+              {job.applied ? (
                 <View style={styles.appliedPill}>
                   <Text style={styles.appliedPillText}>APPLIED</Text>
                 </View>
-              ) : null}
+              ) : null */}
             </View>
           </View>
         </Pressable>
@@ -150,10 +177,18 @@ const JobCard: React.FC<Props> = ({
               {skills.slice(0, 4).map((s, i) => (
                 <View
                   key={i}
-                  style={[styles.chip, isClosed && styles.chipClosed]}
+                  style={[
+                    styles.chip, 
+                    isClosed && styles.chipClosed,
+                    job.applied && !isClosed && styles.chipAppliedGray
+                  ]}
                 >
                   <Text
-                    style={[styles.chipText, isClosed && styles.chipTextClosed]}
+                    style={[
+                      styles.chipText, 
+                      isClosed && styles.chipTextClosed,
+                      job.applied && !isClosed && styles.chipTextAppliedGray
+                    ]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
@@ -164,8 +199,8 @@ const JobCard: React.FC<Props> = ({
 
               {/* overflow indicator if >4 */}
               {showOverflow ? (
-                <View style={[styles.chip, styles.overflowChip]}>
-                  <Text style={styles.chipText}>+{skills.length - 4}</Text>
+                <View style={[styles.chip, styles.overflowChip, job.applied && styles.chipAppliedGray]}>
+                  <Text style={[styles.chipText , job.applied && styles.chipTextAppliedGray]}>+{skills.length - 4}</Text>
                 </View>
               ) : null}
             </ScrollView>
@@ -194,7 +229,9 @@ const styles = StyleSheet.create({
     overflow: "hidden", // overflow hidden here, not in card
   },
   cardClosedWrapper: {},
-  cardAppliedWrapper: {},
+  cardAppliedWrapperGray: {
+    backgroundColor: "#2a2a2a",
+  },
   card: {
     flexDirection: "row",
     alignItems: "stretch",
@@ -205,9 +242,6 @@ const styles = StyleSheet.create({
   },
   cardClosed: {
     backgroundColor: "#2b2b35",
-  },
-  cardApplied: {
-    backgroundColor: "#243224", // slightly different to indicate applied
   },
   appliedAccent: {
     width: 6,
@@ -304,5 +338,38 @@ const styles = StyleSheet.create({
   },
   textClosed: {
     color: "#9e9e9e",
+  },
+  candidatesWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    minWidth: 32,
+    justifyContent: "center",
+  },
+  nb_candidatesText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  cardAppliedGray: {
+    backgroundColor: "#2a2a2a", // gray background for applied
+  },
+  textAppliedGray: {
+    color: "#888888", // gray text
+  },
+  chipAppliedGray: {
+    backgroundColor: "#404040", // gray chip background
+  },
+  chipTextAppliedGray: {
+    color: "#aaaaaa", // gray chip text
   },
 });

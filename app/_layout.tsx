@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { initAuth } from "@/services/authInit";
 import { useAuth } from '@/store/authStore';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -34,15 +35,21 @@ export default function RootLayout() {
     const isAuthRoute = segments[0] === '(auth)';
 
     if (!profile && !isAuthRoute) {
-      router.replace('/(auth)/OnboardingFlow');
+      router.replace('/OnboardingFlow');
     } else if (profile && isAuthRoute) {
       router.replace('/(main)');
     }
   }, [profile, initialized, segments]);
 
-  // 🔹 Block rendering until fonts & auth are ready
-  if (!loaded || !initialized) return null;
-
+  if (!loaded || !initialized) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <View style={{ flex: 1, backgroundColor: '#1a1a2e' }} />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
   const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
 
   return (

@@ -61,7 +61,7 @@ export default function OnboardingFlow() {
       setProfile(result.profile);
       setInitialized(true);
   
-      router.replace("/(main)");
+      //router.replace("/(main)"); double redirect unneeded.
     } catch (err: any) {
       console.error("Signup failed:", err.message);
       alert("Signup Error: " + err.message);
@@ -72,7 +72,7 @@ export default function OnboardingFlow() {
 
   const steps = [
     <AuthScreen
-      key="authscreen"
+      //key="authscreen"
       form={form}
       setForm={setForm}
       onNext={next}
@@ -84,7 +84,7 @@ export default function OnboardingFlow() {
       ? [
           <CvParser key="cv" form={form} setForm={setForm} onNext={next} />,
           <EditCandidateProfile
-            key="edit_profile"
+            //key="edit_profile"
             form={form}
             setForm={setForm}
             onNext={submit}
@@ -92,7 +92,7 @@ export default function OnboardingFlow() {
         ]
       : [
           <CompanyDetails
-            key="company"
+           //key="company"
             form={form}
             setForm={setForm}
             onNext={submit}
@@ -124,7 +124,7 @@ export default function OnboardingFlow() {
         from={{ opacity: 0, translateX: 50 }}
         animate={{ opacity: 1, translateX: 0 }}
         exit={{ opacity: 0, translateX: -50 }}
-        transition={{ type: "timing", duration: 300 }}
+        transition={{ type: "timing", duration: 225 }}
         style={{ flex: 1, width: "100%" }}
       >
         {steps[step]}

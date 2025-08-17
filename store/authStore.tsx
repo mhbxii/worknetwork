@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { User, UserProfile } from '../types/entities';
@@ -95,8 +94,8 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
     set({ session: null, user: null, profile: null });
-    router.replace("/(auth)/AuthScreen");
+    await supabase.auth.signOut();
+    //router.replace('/OnboardingFlow');
   },
 }));
