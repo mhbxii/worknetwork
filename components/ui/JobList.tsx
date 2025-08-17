@@ -1,18 +1,49 @@
 import type { Job } from "@/types/entities";
 import React from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import JobCard from "./JobCard";
 
 type Props = {
   jobs: Job[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   onRefresh: () => void;
+  onLoadMore: () => void;
   onPress: (job: Job) => void;
   onLongPress: (job: Job) => void;
 };
 
-export function JobList({ jobs, loading, onRefresh, onPress, onLongPress }: Props) {
-  if ((jobs ?? []).length === 0) {
+export function JobList({ 
+  jobs, 
+  loading, 
+  loadingMore, 
+  hasMore,
+  onRefresh, 
+  onLoadMore,
+  onPress, 
+  onLongPress 
+}: Props) {
+  
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator animating size="small" />
+        <Text style={styles.footerText}>Loading more jobs...</Text>
+      </View>
+    );
+  };
+
+  const handleEndReached = () => {
+    if (hasMore && !loadingMore && !loading) {
+      onLoadMore();
+    }
+  };
+
+  if ((jobs ?? []).length === 0 && !loading) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No jobs available.</Text>
@@ -32,8 +63,11 @@ export function JobList({ jobs, loading, onRefresh, onPress, onLongPress }: Prop
         />
       )}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={onRefresh}  />
+        <RefreshControl refreshing={loading} onRefresh={onRefresh} />
       }
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.75}
+      ListFooterComponent={renderFooter}
       contentContainerStyle={(jobs ?? []).length === 0 ? styles.flatListEmpty : undefined}
       showsVerticalScrollIndicator={false}
     />
@@ -54,5 +88,14 @@ const styles = StyleSheet.create({
   flatListEmpty: {
     flexGrow: 1,
     justifyContent: "center",
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  footerText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#666",
   },
 });

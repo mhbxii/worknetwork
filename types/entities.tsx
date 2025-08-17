@@ -9,6 +9,8 @@ export type Job = {
   skills?: MetaOption[]; // aggregated skills
   company: MetaOption;
   category: MetaOption;
+  applied: boolean | null;
+  nb_candidates: number | null;
 };
 
 // ------------------

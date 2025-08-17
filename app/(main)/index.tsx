@@ -2,49 +2,101 @@ import { CandidateJobDetails } from "@/components/CandidateJobDetails";
 import { RecruiterJobDetails } from "@/components/RecruiterJobDetails";
 import { JobList } from "@/components/ui/JobList";
 import { SlidePanel } from "@/components/ui/SlidePanel";
-import { useHome } from "@/hooks/useHome";
 import { usePanelHandlers } from "@/hooks/usePanelHandlers";
 import { useAuth } from "@/store/authStore";
-import { memo } from "react";
+import { useJobStore } from "@/store/useJobStore";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { ActivityIndicator } from "react-native-paper";
 
 export default memo(function Index() {
-  const { profile, initialized } = useAuth();
-  const { jobs, loading, refresh } = useHome();
+  const { profile, initialized, user } = useAuth();
   const { 
-    selectedJob, 
-    panelMode, 
-    panelVisible, 
-    setPanelVisible, 
-    handlePress, 
+    jobs, 
+    loading, 
+    loadingMore, 
+    hasMore, 
+    fetchJobs, 
+    fetchMoreJobs, 
+    reset 
+  } = useJobStore();
+  
+  const {
+    selectedJob,
+    panelMode,
+    panelVisible,
+    setPanelVisible,
+    handlePress,
     handleLongPress,
   } = usePanelHandlers();
 
-  // Only show component when everything is ready
-  if (!initialized || !profile || jobs.length === 0) {
+  // Create stable dependency key for effect
+  const profileKey = useMemo(() => {
+    if (!profile || !user) return null;
+   
+    if (user.role.name === "candidate" && "job_category" in profile) {
+      return `candidate_${profile.job_category?.id}`;
+    } else if (user.role.name === "recruiter" && "company" in profile) {
+      return `recruiter_${profile.company?.id}`;
+    }
+    return `${user.role.name}_${user.id}`;
+  }, [profile, user]);
+
+  // Fetch jobs effect
+  useEffect(() => {
+    if (!user || !profile || !profileKey) {
+      console.log("Index: No user/profile/profileKey, resetting jobs");
+      reset();
+      return;
+    }
+
+    // Fetch jobs (will skip if already loading/loaded for this profile)
+    fetchJobs(user, profile, false);
+  }, [user?.id, profileKey, fetchJobs, reset]);
+
+  // Refresh handler (force reload)
+  const handleRefresh = useCallback(() => {
+    if (user && profile) {
+      fetchJobs(user, profile, true);
+    }
+  }, [user, profile, fetchJobs]);
+
+  // Load more handler
+  const handleLoadMore = useCallback(() => {
+    if (user && profile) {
+      fetchMoreJobs(user, profile);
+    }
+  }, [user, profile, fetchMoreJobs]);
+
+  // Only show loading when not initialized or no profile
+  if (!initialized || !profile) {
     return <ActivityIndicator animating size="large" />;
   }
 
-  // Add debug logging to track renders
   console.log("Index render:", {
     initialized,
     hasProfile: !!profile,
     jobsLength: jobs.length,
+    loading,
+    loadingMore,
+    hasMore,
     timestamp: new Date().toISOString()
   });
 
   return (
     <>
-      <JobList 
-        jobs={jobs} 
-        loading={loading} 
-        onRefresh={refresh} 
-        onPress={handlePress} 
-        onLongPress={handleLongPress} 
+      <JobList
+        jobs={jobs}
+        loading={loading}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        onRefresh={handleRefresh}
+        onLoadMore={handleLoadMore}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
       />
-      
-      <SlidePanel 
-        visible={panelVisible} 
+     
+      <SlidePanel
+        visible={panelVisible}
         onClose={() => setPanelVisible(false)}
       >
         {panelMode === "candidateDetails" && selectedJob && (

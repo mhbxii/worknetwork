@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { useJobStore } from "@/store/useJobStore";
 import { MetaOption, useMetaStore } from "@/store/useMetaStore";
 import { Job } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -32,6 +33,7 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
   const [skillQuery, setSkillQuery] = useState("");
   const [allSkills, setAllSkills] = useState<MetaOption[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
+  const { updateJob } = useJobStore();
 
   // Search handler
   const handleSearchSkills = (newPrompt: string) => {
@@ -100,7 +102,7 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
   const handleSave = async () => {
     try {
       setIsSaving(true);
-
+  
       // Map name → ID
       const statusId = statusOptions.find(
         (s) => s.name === editedJob.status.name
@@ -108,11 +110,11 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
       const categoryId = categoryOptions.find(
         (c) => c.name === editedJob.category.name
       )?.id;
-
+  
       if (!statusId || !categoryId) {
         throw new Error("Invalid status or category selection");
       }
-
+  
       const { error } = await supabase
         .from("jobs")
         .update({
@@ -123,20 +125,20 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
           updated_at: new Date().toISOString(),
         })
         .eq("id", editedJob.id);
-
+  
       if (error) throw error;
-
+  
       // Fetch current skills from DB
       const { data: currentSkills, error: fetchError } = await supabase
         .from("job_skills")
         .select("skill_id")
         .eq("job_id", editedJob.id);
-
+  
       if (fetchError) throw fetchError;
-
+  
       const currentSkillIds = currentSkills.map((s) => s.skill_id);
       const newSkillIds = editedJob.skills?.map((s) => s.id);
-
+  
       // Figure out differences
       const skillsToAdd = newSkillIds?.filter(
         (id) => !currentSkillIds.includes(id)
@@ -144,7 +146,7 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
       const skillsToRemove = currentSkillIds.filter(
         (id) => !newSkillIds?.includes(id)
       );
-
+  
       // Add new skills
       if (skillsToAdd?.length) {
         const { error: addError } = await supabase.from("job_skills").insert(
@@ -155,7 +157,7 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
         );
         if (addError) throw addError;
       }
-
+  
       // Remove old skills
       if (skillsToRemove.length) {
         const { error: removeError } = await supabase
@@ -165,7 +167,16 @@ export const RecruiterJobDetails: React.FC<RecruiterJobDetailsProps> = ({
           .in("skill_id", skillsToRemove);
         if (removeError) throw removeError;
       }
-
+  
+      // Update job in store
+      updateJob(editedJob.id, {
+        title: editedJob.title,
+        description: editedJob.description,
+        status: editedJob.status,
+        category: editedJob.category,
+        skills: editedJob.skills,
+      });
+  
       setIsEditing(false);
       alert("Job updated successfully!");
     } catch (err) {

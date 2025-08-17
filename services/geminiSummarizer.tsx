@@ -1,5 +1,5 @@
 // src/services/geminiSummarizer.ts
-import { supabase } from "@/lib/supabase";
+import { MetaOption } from "@/store/useMetaStore";
 import { OnboardingForm } from "@/types/entities";
 
 export interface Project {
@@ -10,8 +10,7 @@ export interface Project {
 }
 
 export interface Experience {
-  company_id: number | null;
-  company_name: string;
+  company: MetaOption | null; // company name or null if not provided
   job_title: string;
   start_date: string;
   end_date: string;
@@ -77,18 +76,18 @@ export async function summarizeCVToForm(
   const raw = await summarizeCV(parsedText);
 
   // Fetch skills from DB
-  const { data: dbSkills } = await supabase
-    .from("skills")
-    .select("id,name")
-    .in("name", raw.skills);
+  // const { data: dbSkills } = await supabase
+  //   .from("skills")
+  //   .select("id,name")
+  //   .in("name", raw.skills);
 
-  const skillIds = (dbSkills || []).map((s) => s.id).slice(0, 15);
+  // const skillIds = (dbSkills || []).map((s) => s.id).slice(0, 15);
 
   return {
     ...existingForm,
     job_title: raw.job_title,
     projects: raw.projects,
     experiences: raw.experiences,
-    skills: skillIds, // ✅ final numeric IDs
+    skills: [], // ✅ final numeric IDs
   };
 }

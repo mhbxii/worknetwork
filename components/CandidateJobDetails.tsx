@@ -1,5 +1,8 @@
+import { useAIMatching } from "@/hooks/useAIMatching";
 import { supabase } from "@/lib/supabase";
+import { createMatchingPrompt } from "@/services/createMatchingPrompt"; // or wherever you put it
 import { useAuth } from "@/store/authStore";
+import { useJobStore } from "@/store/useJobStore";
 import { Job, RecruiterProfile } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -20,34 +23,15 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
   job,
 }) => {
   const { profile, user, setProfile } = useAuth();
-  const [nbProposals, setNbProposals] = useState("nb_proposals" in profile! ? profile.nb_proposals ?? 0 : 0);
+  const { updateJobApplication } = useJobStore();
+  const [nbProposals, setNbProposals] = useState(
+    "nb_proposals" in profile! ? profile.nb_proposals ?? 0 : 0
+  );
   const [recruiters, setRecruiters] = useState<RecruiterProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isApplied, setIsApplied] = useState(false);
-
-  useEffect(() => {
-    // Check if user has already applied for this job
-    async function checkApplication() {
-      try {
-        const { data, error } = await supabase
-          .from("job_applications")
-          .select("id")
-          .eq("job_id", job.id)
-          .eq("candidate_id", user!.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Error checking application:", error);
-        } else {
-          setIsApplied(!!data);
-        }
-      } catch (err) {
-        console.error("Unexpected error checking application:", err);
-      }
-    }
-
-    checkApplication();
-  }, []);
+  const [isApplied, setIsApplied] = useState(job.applied ?? false);
+  const [applying, setApplying] = useState(false);
+  const { calculateMatchingScore } = useAIMatching();
 
   useEffect(() => {
     async function fetchRecruiters() {
@@ -90,26 +74,30 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
     if (job.company?.id) fetchRecruiters();
   }, [job.company?.id]);
 
+  const updateJobInStore = (jobId: number) => {
+    updateJobApplication(jobId, true);
+  };
+
   const handleJobApplication = async () => {
     if (nbProposals <= 0) {
       console.log("You've hit your limits! You cant apply for this job now.");
       return;
     }
-    
+
     if (isApplied) {
       console.log("You have already applied for this job.");
       alert("You have already applied for this job.");
       return;
     }
 
+    setApplying(true);
+
     try {
-      const { error } = await supabase
-        .from("job_applications")
-        .insert({
-          job_id: job.id,
-          candidate_id: user!.id,
-          status_id: 3, // Assuming 3 is the status for "Pending"
-        });
+      const { error } = await supabase.from("job_applications").insert({
+        job_id: job.id,
+        candidate_id: user!.id,
+        status_id: 3, // Assuming 3 is the status for "Pending"
+      });
 
       if (error) {
         console.error("Error applying for job:", error);
@@ -132,15 +120,51 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
             nb_proposals: (profile.nb_proposals ?? 0) - 1,
           });
         }
+
         // Update local state
         setNbProposals((prev) => prev - 1);
         setIsApplied(true);
+
+        // Update job in store: applied = true, nb_candidates + 1
+        updateJobInStore(job.id);
+
+        // Calculate matching score in background (fire-and-forget)
+        if (profile && "skills" in profile) {
+          const prompt = createMatchingPrompt(profile, job);
+          calculateMatchingScore(prompt)
+            .then(async (score) => {
+              if (score > 0) {
+                // Update the job_applications record with the matching score
+                const { error: scoreError } = await supabase
+                  .from("job_applications")
+                  .update({ matched_score: score })
+                  .eq("job_id", job.id)
+                  .eq("candidate_id", user!.id);
+
+                if (scoreError) {
+                  console.error("Error updating matching score:", scoreError);
+                } else {
+                  console.log(
+                    `Matching score ${score}/10 saved for job ${job.id}`
+                  );
+                }
+              }
+            })
+            .catch((err) => {
+              console.error(
+                "Background matching score calculation failed:",
+                err
+              );
+            });
+        }
       }
     } catch (err) {
       console.error("Unexpected error applying for job:", err);
       alert("An unexpected error occurred. Please try again later.");
+    } finally {
+      setApplying(false);
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -204,6 +228,21 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
             Posted {formatDate(job.created_at)}
           </Text>
         </View>
+
+        {/* Candidates Count */}
+        {job.nb_candidates !== null && job.nb_candidates > 0 && (
+          <View style={styles.candidatesRow}>
+            <MaterialCommunityIcons
+              name="account-group"
+              size={14}
+              color="#7c4dff"
+            />
+            <Text style={styles.candidatesText}>
+              {job.nb_candidates} candidate{job.nb_candidates !== 1 ? "s" : ""}{" "}
+              applied
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Description Section */}
@@ -244,22 +283,29 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
         <Pressable
           style={[
             styles.applyButton,
-            (nbProposals <= 0 || isApplied) && styles.applyButtonDisabled,
+            (nbProposals <= 0 || isApplied || applying) &&
+              styles.applyButtonDisabled,
           ]}
-          disabled={nbProposals <= 0}
+          disabled={nbProposals <= 0 || applying}
           onPress={handleJobApplication}
         >
-          {!isApplied && <MaterialCommunityIcons
-            name="send"
-            size={20}
-            color={nbProposals <= 0 ? "#666" : "#fff"}
-          />}
-          <Text
-            style={[
-              styles.applyButtonText,
-            ]}
-          >
-            {!isApplied ? <Text>Apply</Text> : <Text>Applied</Text>} ({nbProposals} proposals left)
+          {applying ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            !isApplied && (
+              <MaterialCommunityIcons
+                name="send"
+                size={20}
+                color={nbProposals <= 0 ? "#666" : "#fff"}
+              />
+            )
+          )}
+          <Text style={styles.applyButtonText}>
+            {applying
+              ? "Applying..."
+              : isApplied
+              ? `Applied (${nbProposals} proposals left)`
+              : `Apply (${nbProposals} proposals left)`}
           </Text>
         </Pressable>
 
@@ -524,5 +570,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginLeft: 4,
+  },
+  candidatesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  candidatesText: {
+    fontSize: 12,
+    color: "#7c4dff",
+    marginLeft: 4,
+    fontWeight: "500",
   },
 });
