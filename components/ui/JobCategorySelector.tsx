@@ -1,4 +1,4 @@
-import { MetaOption } from "@/store/useMetaStore";
+import { MetaOption } from "@/types/entities";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "react-native-paper";

@@ -1,5 +1,5 @@
-import { MetaOption } from "@/store/useMetaStore";
-import { User, UserProfile } from "@/types/entities";
+
+import { MetaOption, User, UserProfile } from "@/types/entities";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../store/authStore";
 

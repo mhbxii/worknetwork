@@ -74,8 +74,11 @@ const styles = StyleSheet.create({
   header: {
     padding: 16,
     borderBottomWidth: 1,
+    marginBottom: 8,
+    borderColor: '#e5e7eb',
     borderBottomColor: '#e5e7eb',
     backgroundColor: '#f9fafb',
+    borderRadius: 8,
   },
   jobTitle: {
     fontSize: 18,

@@ -1,5 +1,6 @@
-import { CandidateProfile, MetaOption, Proposal, User } from '@/types/entities';
-import { useCallback, useEffect, useState } from 'react';
+import { supabase } from "@/lib/supabase"; // Adjust import path as needed
+import { CandidateProfile, MetaOption, Proposal, User } from "@/types/entities";
+import { useCallback, useEffect, useState } from "react";
 
 interface UseJobProposalsReturn {
   proposals: Proposal[];
@@ -12,6 +13,8 @@ interface UseJobProposalsReturn {
   refreshProposals: () => void;
 }
 
+const PAGE_SIZE = 10;
+
 export function useJobProposals(jobId: number): UseJobProposalsReturn {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,149 +23,109 @@ export function useJobProposals(jobId: number): UseJobProposalsReturn {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // Mock data generator - replace with actual Supabase query
-  const generateMockProposals = useCallback((startId: number, count: number): Proposal[] => {
-    const mockStatuses: MetaOption[] = [
-      { id: 1, name: 'pending' },
-      { id: 2, name: 'interview' },
-      { id: 3, name: 'accepted' },
-      { id: 4, name: 'rejected' }
-    ];
-
-    const mockCompanies: MetaOption[] = [
-      { id: 1, name: 'Tech Corp' },
-      { id: 2, name: 'StartupX' }
-    ];
-
-    const mockCategories: MetaOption[] = [
-      { id: 1, name: 'Frontend Development' },
-      { id: 2, name: 'Backend Development' }
-    ];
-
-    const mockSkills: MetaOption[] = [
-      { id: 1, name: 'React' },
-      { id: 2, name: 'TypeScript' },
-      { id: 3, name: 'Node.js' }
-    ];
-
-    return Array.from({ length: count }, (_, index) => {
-      const id = startId + index;
-      const randomStatus = mockStatuses[Math.floor(Math.random() * mockStatuses.length)];
-      
-      const mockUser: User = {
-        id: id + 1000,
-        supabase_user_id: `mock-user-${id}`,
-        name: `Candidate ${id}`,
-        email: `candidate${id}@example.com`,
-        profile_pic_url: undefined,
-        role: { id: 1, name: 'candidate' },
-        country: { id: 1, name: 'Tunisia' },
-        created_at: new Date(Date.now() - Math.random() * 86400000 * 30).toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const mockCandidate: CandidateProfile = {
-        job_title: `${randomStatus.name === 'accepted' ? 'Senior' : 'Junior'} Developer`,
-        experiences: [
-          {
-            company: mockCompanies[Math.floor(Math.random() * mockCompanies.length)],
-            job_title: 'Software Developer',
-            start_date: '2022-01-01',
-            end_date: randomStatus.name === 'accepted' ? undefined : '2023-12-31',
-          }
-        ],
-        projects: [
-          {
-            name: `Project ${id}`,
-            description: 'A sample project demonstrating skills',
-            start_date: '2023-01-01',
-            end_date: '2023-06-01',
-          }
-        ],
-        skills: mockSkills.slice(0, Math.floor(Math.random() * 3) + 1),
-        job_category: mockCategories[Math.floor(Math.random() * mockCategories.length)],
-        nb_proposals: Math.floor(Math.random() * 10) + 1,
-      };
-
-      return {
-        id,
-        user: mockUser,
-        candidate: mockCandidate,
-        job_id: jobId,
-        status: randomStatus,
-        createdAt: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
-        updatedAt: new Date().toISOString(),
-        matched_score: Math.random() * 100,
-      };
-    });
-  }, [jobId]);
-
   const fetchProposals = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // TODO: Replace with actual Supabase query
-      /*
+
       const { data, error } = await supabase
-        .from('job_applications')
-        .select(`
-          id,
-          job_id,
-          matched_score,
-          status_id,
-          created_at,
-          updated_at,
-          users!candidate_id (
+        .from("job_applications")
+        .select(
+          `
             id,
-            supabase_user_id,
-            name,
-            email,
-            profile_pic_url,
-            country:countries(id, name),
-            role:roles(id, name)
-          ),
-          candidate_profiles!candidate_id (
-            job_title,
-            job_category:job_categories(id, name),
-            nb_proposals,
-            candidate_experiences (
-              job_title,
-              start_date,
-              end_date,
-              company:companies(id, name)
+            job_id,
+            matched_score,
+            created_at,
+            updated_at,
+            candidate:candidate_id (
+              users!user_id (
+                id,
+                supabase_user_id,
+                name,
+                email,
+                profile_pic_url,
+                created_at,
+                updated_at,
+                role:role_id(id, name),
+                country:country_id(id, name)
+              )
             ),
-            candidate_projects (
-              name,
-              description,
-              start_date,
-              end_date
-            ),
-            candidate_skills (
-              skill:skills(id, name)
-            )
-          ),
-          status:application_statuses(id, name)
-        `)
-        .eq('job_id', jobId)
-        .order('created_at', { ascending: false })
-        .range(0, 9);
-      */
-      
-      // Mock API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockData = generateMockProposals(1, 5);
-      setProposals(mockData);
+            status:status_id(id, name)
+          `
+        )
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: false })
+        .range(0, PAGE_SIZE - 1);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // console.log(
+      //   "useJobProposals: Fetched proposals for job: \n",
+      //   JSON.stringify(data, null, 2)
+      // );
+
+      if (!data) {
+        setProposals([]);
+        setHasMore(false);
+        setPage(1);
+        return;
+      }
+
+      // Process the proposals and fetch candidate profiles
+      const processedProposals = await Promise.all(
+        data.map(async (item: any) => {
+          const userData = item.candidate?.users;
+
+          if (!userData) {
+            throw new Error("User data is missing in candidate relationship");
+          }
+
+          const user: User = {
+            id: userData.id,
+            supabase_user_id: userData.supabase_user_id,
+            name: userData.name,
+            email: userData.email,
+            profile_pic_url: userData.profile_pic_url,
+            role: userData.role, // No need for Array.isArray here
+            country: userData.country,
+            created_at: userData.created_at,
+            updated_at: userData.updated_at,
+          };
+
+          const status: MetaOption = item.status;
+
+          // Fetch candidate profile if user is a candidate
+          let candidate: CandidateProfile | null = null;
+          if (user.role?.name === "candidate") {
+            candidate = await fetchCandidateProfile(user.id);
+          }
+
+          return {
+            id: item.id,
+            user,
+            candidate,
+            job_id: item.job_id,
+            status,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+            matched_score: item.matched_score,
+          } as Proposal;
+        })
+      );
+
+      setProposals(processedProposals);
       setPage(1);
-      setHasMore(mockData.length === 10); // If we got 10, there might be more
-      
+      setHasMore(data.length === PAGE_SIZE);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch proposals');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch proposals"
+      );
     } finally {
       setLoading(false);
     }
-  }, [jobId, generateMockProposals]);
+  }, [jobId]);
 
   const fetchMoreProposals = useCallback(async () => {
     if (!hasMore || loadingMore) return;
@@ -171,22 +134,100 @@ export function useJobProposals(jobId: number): UseJobProposalsReturn {
       setLoadingMore(true);
       setError(null);
 
-      // Mock API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const startId = proposals.length + 1;
-      const mockData = generateMockProposals(startId, 3);
-      
-      setProposals(prev => [...prev, ...mockData]);
-      setPage(prev => prev + 1);
-      setHasMore(mockData.length === 10); // If we got less than 10, no more data
-      
+      const startRange = page * PAGE_SIZE;
+      const endRange = startRange + PAGE_SIZE - 1;
+
+      const { data, error } = await supabase
+        .from("job_applications")
+        .select(
+          `
+            id,
+            job_id,
+            matched_score,
+            created_at,
+            updated_at,
+            candidate:candidate_id (
+              users!user_id (
+                id,
+                supabase_user_id,
+                name,
+                email,
+                profile_pic_url,
+                created_at,
+                updated_at,
+                role:role_id(id, name),
+                country:country_id(id, name)
+              )
+            ),
+            status:status_id(id, name)
+          `
+        )
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: false })
+        .range(startRange, endRange);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data || data.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      // Process the new proposals
+      const processedProposals = await Promise.all(
+        data.map(async (item: any) => {
+          const userData = item.candidate?.users;
+
+          if (!userData) {
+            throw new Error("User data is missing in candidate relationship");
+          }
+
+          const user: User = {
+            id: userData.id,
+            supabase_user_id: userData.supabase_user_id,
+            name: userData.name,
+            email: userData.email,
+            profile_pic_url: userData.profile_pic_url,
+            role: userData.role, // No need for Array.isArray here
+            country: userData.country,
+            created_at: userData.created_at,
+            updated_at: userData.updated_at,
+          };
+
+          const status: MetaOption = item.status;
+
+          // Fetch candidate profile if user is a candidate
+          let candidate: CandidateProfile | null = null;
+          if (user.role?.name === "candidate") {
+            candidate = await fetchCandidateProfile(user.id);
+          }
+
+          return {
+            id: item.id,
+            user,
+            candidate,
+            job_id: item.job_id,
+            status,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+            matched_score: item.matched_score,
+          } as Proposal;
+        })
+      );
+
+      setProposals((prev) => [...prev, ...processedProposals]);
+      setPage((prev) => prev + 1);
+      setHasMore(data.length === PAGE_SIZE);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch more proposals');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch more proposals"
+      );
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, proposals.length, generateMockProposals]);
+  }, [hasMore, loadingMore, page, jobId]);
 
   const refreshProposals = useCallback(() => {
     setPage(0);
@@ -209,4 +250,93 @@ export function useJobProposals(jobId: number): UseJobProposalsReturn {
     fetchMoreProposals,
     refreshProposals,
   };
+}
+
+// Helper function to fetch candidate profile (similar to your fetchUser pattern)
+async function fetchCandidateProfile(
+  userId: number
+): Promise<CandidateProfile | null> {
+  try {
+    const candidateQ = supabase
+      .from("candidates")
+      .select("job_title, job_category_id, nb_proposals")
+      .eq("user_id", userId)
+      .single();
+
+    const projectsQ = supabase
+      .from("candidate_projects")
+      .select("name, description, start_date, end_date")
+      .eq("candidate_id", userId);
+
+    const experiencesQ = supabase
+      .from("candidate_experiences")
+      .select("companies:company_id(id, name), job_title, start_date, end_date")
+      .eq("candidate_id", userId);
+
+    const skillsQ = supabase
+      .from("candidate_skills")
+      .select("skills:skill_id(id, name)")
+      .eq("candidate_id", userId);
+
+    const [
+      { data: candidateData, error: candidateError },
+      { data: projectsData, error: projectsError },
+      { data: experiencesData, error: experiencesError },
+      { data: skillsData, error: skillsError },
+    ] = await Promise.all([candidateQ, projectsQ, experiencesQ, skillsQ]);
+
+    if (candidateError || !candidateData) {
+      return null;
+    }
+
+    // Fetch job category if exists
+    let jobCategory: MetaOption | null = null;
+    if (candidateData.job_category_id) {
+      const { data: jobCategoryData } = await supabase
+        .from("job_categories")
+        .select("id, name")
+        .eq("id", candidateData.job_category_id)
+        .single();
+      jobCategory = jobCategoryData || null;
+    }
+
+    // Process the data
+    const projects = projectsData || [];
+    const experiencesRaw = experiencesData || [];
+    const skillsRaw = skillsData || [];
+
+    const experiences = experiencesRaw.map((e: any) => ({
+      company: e.companies
+        ? { id: e.companies.id, name: e.companies.name }
+        : null,
+      job_title: e.job_title,
+      start_date: e.start_date,
+      end_date: e.end_date,
+    }));
+
+    const skills = skillsRaw
+      .filter((s: any) => s.skills)
+      .map((s: any) => ({ id: s.skills.id, name: s.skills.name }));
+
+    // console.log({
+    //   job_title: candidateData.job_title ?? "",
+    //   job_category: jobCategory,
+    //   nb_proposals: candidateData.nb_proposals ?? null,
+    //   projects,
+    //   experiences,
+    //   skills: skills.length > 0 ? skills : null,
+    // });
+
+    return {
+      job_title: candidateData.job_title ?? "",
+      job_category: jobCategory,
+      nb_proposals: candidateData.nb_proposals ?? null,
+      projects,
+      experiences,
+      skills: skills.length > 0 ? skills : null,
+    };
+  } catch (err) {
+    console.error("fetchCandidateProfile: Error fetching profile", err);
+    return null;
+  }
 }

@@ -1,6 +1,5 @@
 // src/services/geminiSummarizer.ts
-import { MetaOption } from "@/store/useMetaStore";
-import { OnboardingForm } from "@/types/entities";
+import { MetaOption, OnboardingForm } from "@/types/entities";
 
 export interface Project {
   name: string;

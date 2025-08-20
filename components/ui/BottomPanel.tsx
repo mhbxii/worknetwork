@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import {
-    Animated,
-    Dimensions,
-    Pressable,
-    StyleSheet,
-    Text,
-    View
+  Animated,
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomPanelProps {
   visible: boolean;
@@ -18,9 +19,11 @@ interface BottomPanelProps {
 export const BottomPanel = React.memo<BottomPanelProps>(({
   visible,
   onClose,
-  height = Dimensions.get("window").height * 0.85, // default 60% of screen height
+  height: propHeight, // allow custom height
   children,
 }) => {
+  const insets = useSafeAreaInsets(); // hook inside body
+  const height = propHeight ?? Dimensions.get("window").height * 0.8 - insets.top;
   const slideAnim = useRef(new Animated.Value(height)).current; // offscreen bottom
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -134,7 +137,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 56, // Space for close button
-    padding: 16,
+    paddingTop: 12, // Space for close button
+    paddingHorizontal: 6,
+    backgroundColor: "#999",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
 });
