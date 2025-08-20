@@ -1,4 +1,15 @@
-import { MetaOption } from "@/store/useMetaStore";
+export type MetaOption = { id: number; name: string };
+
+export interface Proposal {
+  id: number;
+  user: User;
+  candidate: CandidateProfile | null; // null if not candidate
+  job_id: number; // from jobs.id
+  status: MetaOption;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  matched_score: number | null;
+}
 
 export type Job = {
   id: number; // from jobs.id

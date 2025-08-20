@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { MetaOption } from "@/types/entities";
 import { create } from "zustand";
-
-export type MetaOption = { id: number; name: string };
 
 type MetaStore = {
   statusOptions: MetaOption[];

@@ -1,6 +1,6 @@
 import CategorySelector from "@/components/ui/JobCategorySelector";
-import { MetaOption, useMetaStore } from "@/store/useMetaStore";
-import { OnboardingForm } from "@/types/entities";
+import { useMetaStore } from "@/store/useMetaStore";
+import { MetaOption, OnboardingForm } from "@/types/entities";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useState } from "react";
 import {

@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { useJobStore } from "@/store/useJobStore";
-import { MetaOption, useMetaStore } from "@/store/useMetaStore";
-import { Job } from "@/types/entities";
+import { useMetaStore } from "@/store/useMetaStore";
+import { Job, MetaOption } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {

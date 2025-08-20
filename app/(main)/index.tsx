@@ -1,5 +1,7 @@
 import { CandidateJobDetails } from "@/components/CandidateJobDetails";
+import { JobProposalDetails } from "@/components/JobProposalDetails";
 import { RecruiterJobDetails } from "@/components/RecruiterJobDetails";
+import { BottomPanel } from "@/components/ui/BottomPanel";
 import { JobList } from "@/components/ui/JobList";
 import { SlidePanel } from "@/components/ui/SlidePanel";
 import { usePanelHandlers } from "@/hooks/usePanelHandlers";
@@ -10,21 +12,25 @@ import { ActivityIndicator } from "react-native-paper";
 
 export default memo(function Index() {
   const { profile, initialized, user } = useAuth();
-  const { 
-    jobs, 
-    loading, 
-    loadingMore, 
-    hasMore, 
-    fetchJobs, 
-    fetchMoreJobs, 
-    reset 
+  const {
+    jobs,
+    loading,
+    loadingMore,
+    hasMore,
+    fetchJobs,
+    fetchMoreJobs,
+    reset
   } = useJobStore();
-  
+
   const {
     selectedJob,
     panelMode,
     panelVisible,
     setPanelVisible,
+    selectedBottomJob,
+    bottomPanelMode,
+    bottomPanelVisible,
+    setBottomPanelVisible,
     handlePress,
     handleLongPress,
   } = usePanelHandlers();
@@ -32,7 +38,7 @@ export default memo(function Index() {
   // Create stable dependency key for effect
   const profileKey = useMemo(() => {
     if (!profile || !user?.role?.name) return null; // Safe check
-    
+   
     if (user.role.name === "candidate" && "job_category" in profile) {
       return `candidate_${profile.job_category?.id}`;
     } else if (user.role.name === "recruiter" && "company" in profile) {
@@ -93,9 +99,10 @@ export default memo(function Index() {
         onLongPress={handleLongPress}
       />
      
+      {/* Side Panel */}
       <SlidePanel
         visible={panelVisible}
-        onClose={() => setPanelVisible(false)}
+        onClose={setPanelVisible}
       >
         {panelMode === "candidateDetails" && selectedJob && (
           <CandidateJobDetails job={selectedJob} />
@@ -104,6 +111,16 @@ export default memo(function Index() {
           <RecruiterJobDetails job={selectedJob} />
         )}
       </SlidePanel>
+
+      {/* Bottom Panel */}
+      <BottomPanel
+        visible={bottomPanelVisible}
+        onClose={setBottomPanelVisible}
+      >
+        {bottomPanelMode === "recruiterActions" && selectedBottomJob && (
+          <JobProposalDetails job={selectedBottomJob} />
+        )}
+      </BottomPanel>
     </>
   );
 });
