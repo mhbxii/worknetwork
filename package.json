@@ -21,6 +21,8 @@
     "@tamagui/button": "^1.132.15",
     "@tamagui/core": "^1.132.15",
     "@tamagui/text": "^1.132.15",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "expo": "~53.0.20",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",

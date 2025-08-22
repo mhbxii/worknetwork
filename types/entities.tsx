@@ -1,5 +1,14 @@
 export type MetaOption = { id: number; name: string };
 
+export interface Notification {
+  id: number;
+  target_user_id: number;
+  type: string;
+  content: string;
+  created_at: string;
+  read_at: string | null;
+}
+
 export interface Proposal {
   id: number;
   user: User;
