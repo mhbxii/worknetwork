@@ -16,6 +16,7 @@ interface NotificationsState {
   fetchNotifications: (userId: number, force?: boolean) => Promise<void>;
   fetchMoreNotifications: (userId: number) => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
+  markAllAsRead: (userId: number) => Promise<void>;
   subscribeToRealtime: (userId: number) => void;
   reset: () => void;
 }
@@ -90,20 +91,52 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   markAsRead: async (id) => {
     try {
+      set((state) => {
+        const notif = state.notifications.find((n) => n.id === id);
+        if (!notif || notif.read_at) {
+          return state; // Already read or not found → do nothing
+        }
+        // Optimistically update state
+        const updatedNotifications = state.notifications.map((n) =>
+          n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+        );
+
+        // Fire async update
+        supabase
+          .from("notifications")
+          .update({ read_at: new Date().toISOString() })
+          .eq("id", id)
+          .then(({ error }) => {
+            if (error)
+              console.error("Error marking notification as read:", error);
+          });
+
+        return { notifications: updatedNotifications };
+      });
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  },
+
+  markAllAsRead: async (userId: number) => {
+    try {
+      // Optimistic UI update
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.read_at ? n : { ...n, read_at: new Date().toISOString() }
+        ),
+      }));
+
+      // Update DB
       const { error } = await supabase
         .from("notifications")
         .update({ read_at: new Date().toISOString() })
-        .eq("id", id);
+        .eq("target_user_id", userId)
+        .is("read_at", null); // Only unread
 
       if (error) throw error;
-
-      set((state) => ({
-        notifications: state.notifications.map((n) =>
-          n.id === id ? { ...n, read_at: new Date().toISOString() } : n
-        ),
-      }));
     } catch (err) {
-      console.error("Error marking notification as read:", err);
+      console.error("Error marking all as read:", err);
     }
   },
 
@@ -120,7 +153,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         },
         (payload) => {
           set((state) => ({
-            notifications: [payload.new as Notification, ...state.notifications],
+            notifications: [
+              payload.new as Notification,
+              ...state.notifications,
+            ],
           }));
         }
       )
