@@ -1,5 +1,23 @@
 export type MetaOption = { id: number; name: string };
 
+export interface Message {
+  id: number;
+  sender: MetaOption;
+  receiver: MetaOption;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  is_read: boolean;
+}
+
+export interface Conversation {
+  id: string; // e.g., "1-2" (smaller_id-larger_id)
+  participants: MetaOption[]; // [user1, user2]
+  last_message: Message;
+  unread_count: number;
+  updated_at: string; // from last message
+}
+
 export interface Notification {
   id: number;
   target_user_id: number;

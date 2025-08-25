@@ -9,8 +9,10 @@ import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/store/authStore";
+import { useConversationsStore } from "@/store/useConversationStore";
 import { useMetaStore } from "@/store/useMetaStore";
 import { useNotificationsStore } from "@/store/useNotificationStore";
+import { MetaOption } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AnimatePresence, MotiView } from "moti";
 import { Pressable } from "react-native-gesture-handler";
@@ -18,17 +20,35 @@ import { Pressable } from "react-native-gesture-handler";
 export default function TabLayout() {
   const { user } = useAuth();
   const fetchMeta = useMetaStore((s) => s.fetchMeta);
+  
+  // Notifications
   const { fetchNotifications, subscribeToRealtime } = useNotificationsStore();
+  const unreadNotifications = useNotificationsStore(
+    (s) => s.notifications.filter((n) => !n.read_at).length
+  );
+
+  // Messages
+  const { 
+    fetchConversations, 
+    subscribeToRealtime: subscribeToConversations, 
+    conversations 
+  } = useConversationsStore();
+  
+  const unreadMessages = conversations.reduce((total, conv) => total + conv.unread_count, 0);
 
   useEffect(() => {
     if (!user) return;
     fetchNotifications(user.id);
     subscribeToRealtime(user.id);
-  }, []);
-
-  const unreadCount = useNotificationsStore(
-    (s) => s.notifications.filter((n) => !n.read_at).length
-  );
+  
+    fetchConversations({ id: user.id, name: user.name } as MetaOption);
+    subscribeToConversations({ id: user.id, name: user.name } as MetaOption);
+  
+    return () => {
+      // if you expose unsubscribe from notifications store, call it here too
+      useConversationsStore.getState().unsubscribeRealtime();
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchMeta(); // load once
@@ -48,6 +68,24 @@ export default function TabLayout() {
     >
       <MaterialCommunityIcons name="plus" size={26} color={"#0f0"} />
     </Pressable>
+  );
+
+  const Badge = ({ count }: { count: number }) => (
+    <AnimatePresence>
+      {count > 0 && (
+        <MotiView
+          from={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0 }}
+          transition={{ type: "spring", damping: 12 }}
+          style={styles.badge}
+        >
+          <Text style={styles.badgeNumberCount}>
+            {count > 99 ? "99+" : count}
+          </Text>
+        </MotiView>
+      )}
+    </AnimatePresence>
   );
 
   return (
@@ -82,7 +120,10 @@ export default function TabLayout() {
           title: "Messages",
           headerShown: true,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="message" size={size} color={color} />
+            <View>
+              <MaterialCommunityIcons name="message" size={size} color={color} />
+              <Badge count={unreadMessages} />
+            </View>
           ),
         }}
       />
@@ -94,21 +135,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <View>
               <MaterialCommunityIcons name="bell" size={size} color={color} />
-              <AnimatePresence>
-                {unreadCount > 0 && (
-                  <MotiView
-                    from={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: "spring", damping: 12 }}
-                    style={styles.badge}
-                  >
-                    <Text style={styles.badgeNumberCount}>
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </Text>
-                  </MotiView>
-                )}
-              </AnimatePresence>
+              <Badge count={unreadNotifications} />
             </View>
           ),
         }}
