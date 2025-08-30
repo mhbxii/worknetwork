@@ -1,19 +1,19 @@
 import { useAuth } from "@/store/authStore";
-import { useMessagesStore } from "@/store/useMessageStore";
+import { useChatStore } from "@/store/useChatStore";
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { MotiView } from "moti";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    RefreshControl,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 interface ChatProps {
@@ -51,7 +51,6 @@ const MessageBubble = ({ message, isFromMe, showTime }: MessageBubbleProps) => {
       >
         <Text style={{ color: "#fff", fontSize: 16 }}>{message.content}</Text>
       </View>
-
       {showTime && (
         <View
           style={{
@@ -90,29 +89,44 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
   const flatListRef = useRef<FlatList>(null);
 
   const {
-    messages,
-    loading,
+    getConversationMessages,
+    messagesLoading,
+    messagesHasMore,
     sendingMessage,
     fetchMessages,
+    fetchMoreMessages,
     sendMessage,
-    subscribeToRealtime,
-    reset,
-  } = useMessagesStore();
+    markMessagesAsRead,
+  } = useChatStore();
 
+  const messages = getConversationMessages(conversationId);
+  const isLoading = messagesLoading[conversationId] || false;
+  const hasMoreMessages = messagesHasMore[conversationId] || false;
+
+  // Extract other user info from first message for header
+  const otherUser = messages.length > 0 
+    ? (messages[0]?.sender.id === user?.id 
+        ? messages[0]?.receiver 
+        : messages[0]?.sender)
+    : null;
+
+  // Parse conversation ID to get other user ID for sending messages
   const [otherUserId, setOtherUserId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
-      // ...
-      fetchMessages(conversationId, user.id);
-      subscribeToRealtime(conversationId);
+    if (conversationId) {
+      const [id1, id2] = conversationId.split("-").map(Number);
+      const otherId = id1 === user?.id ? id2 : id1;
+      setOtherUserId(otherId);
     }
-    return () => {
-      reset();
-      useMessagesStore.getState().unsubscribeRealtime(conversationId);
-    };
   }, [conversationId, user?.id]);
-  
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchMessages(conversationId, user.id);
+      markMessagesAsRead(conversationId, user.id);
+    }
+  }, [conversationId, user?.id]);
 
   // Refresh handler (force reload)
   const handleRefresh = useCallback(() => {
@@ -122,18 +136,22 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
   }, [user, fetchMessages, conversationId]);
 
   const handleSend = async () => {
-    if (!messageText.trim() || !user?.id || !otherUserId || sendingMessage)
-      return;
+    if (!messageText.trim() || !user?.id || !otherUserId || sendingMessage) return;
 
     const text = messageText.trim();
     setMessageText("");
-
     await sendMessage(user.id, otherUserId, text);
 
     // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
+  };
+
+  const loadMoreMessages = () => {
+    if (hasMoreMessages && user?.id && !isLoading) {
+      fetchMoreMessages(conversationId, user.id);
+    }
   };
 
   const shouldShowTime = (message: any, index: number) => {
@@ -146,7 +164,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
     return timeDiff > 5 || nextMessage.sender.id !== message.sender_id;
   };
 
-  if (loading && messages.length === 0) {
+  if (isLoading && messages.length === 0) {
     return (
       <View
         style={{
@@ -180,8 +198,8 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
         <Pressable onPress={onBack} style={{ marginRight: 12 }}>
           <AntDesign name="arrowleft" size={24} color="#fff" />
         </Pressable>
-
-        {messages.length > 0 && (
+        
+        {otherUser && (
           <>
             <View
               style={{
@@ -195,14 +213,15 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
               }}
             >
               <Text
-                style={{ color: "#9ca3af", fontSize: 16, fontWeight: "600" }}
+                style={{
+                  color: "#9ca3af",
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
               >
-                {messages[0]?.sender.id === user?.id
-                  ? messages[0]?.receiver.name.charAt(0).toUpperCase()
-                  : messages[0]?.sender.name.charAt(0).toUpperCase()}
+                {otherUser.name.charAt(0).toUpperCase()}
               </Text>
             </View>
-
             <Text
               style={{
                 color: "#fff",
@@ -211,9 +230,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
                 flex: 1,
               }}
             >
-              {messages[0]?.sender.id === user?.id
-                ? messages[0]?.receiver.name
-                : messages[0]?.sender.name}
+              {otherUser.name}
             </Text>
           </>
         )}
@@ -224,7 +241,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
         ref={flatListRef}
         data={messages}
         refreshControl={
-            <RefreshControl refreshing={loading} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
         renderItem={({ item, index }) => (
           <MessageBubble
@@ -239,6 +256,16 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
           flatListRef.current?.scrollToEnd({ animated: true })
         }
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        onEndReached={loadMoreMessages}
+        onEndReachedThreshold={0.1}
+        inverted={false}
+        ListHeaderComponent={
+          hasMoreMessages && isLoading ? (
+            <View style={{ paddingVertical: 16, alignItems: "center" }}>
+              <ActivityIndicator size="small" color="#2563eb" />
+            </View>
+          ) : null
+        }
       />
 
       {/* Input */}
@@ -270,7 +297,6 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
           multiline
           maxLength={500}
         />
-
         <Pressable
           onPress={handleSend}
           disabled={!messageText.trim() || sendingMessage}

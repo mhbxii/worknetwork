@@ -1,21 +1,19 @@
-import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
-
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/store/authStore";
-import { useConversationsStore } from "@/store/useConversationStore";
+import { useChatStore } from "@/store/useChatStore";
 import { useMetaStore } from "@/store/useMetaStore";
 import { useNotificationsStore } from "@/store/useNotificationStore";
-import { MetaOption } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { AnimatePresence, MotiView } from "moti";
+import React, { useEffect } from "react";
+import { Platform, StyleSheet, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
+import { Text } from "react-native-paper";
 
 export default function TabLayout() {
   const { user } = useAuth();
@@ -26,27 +24,36 @@ export default function TabLayout() {
   const unreadNotifications = useNotificationsStore(
     (s) => s.notifications.filter((n) => !n.read_at).length
   );
-
-  // Messages
+  
+  // Chat - unified store
   const { 
     fetchConversations, 
-    subscribeToRealtime: subscribeToConversations, 
-    conversations 
-  } = useConversationsStore();
+    subscribeToRealtime: subscribeToChatRealtime,
+    getTotalUnreadMessages,
+    setCurrentUser,
+    reset: resetChat,
+    unsubscribeRealtime: unsubscribeChatRealtime
+  } = useChatStore();
   
-  const unreadMessages = conversations.reduce((total, conv) => total + conv.unread_count, 0);
+  const unreadMessages = user ? getTotalUnreadMessages(user.id) : 0;
 
   useEffect(() => {
     if (!user) return;
+
+    // Set current user in chat store
+    setCurrentUser({ id: user.id, name: user.name });
+    
+    // Initialize notifications
     fetchNotifications(user.id);
     subscribeToRealtime(user.id);
-  
-    fetchConversations({ id: user.id, name: user.name } as MetaOption);
-    subscribeToConversations({ id: user.id, name: user.name } as MetaOption);
-  
+    
+    // Initialize chat
+    fetchConversations({ id: user.id, name: user.name });
+    subscribeToChatRealtime(user.id);
+
     return () => {
-      // if you expose unsubscribe from notifications store, call it here too
-      useConversationsStore.getState().unsubscribeRealtime();
+      // Cleanup
+      unsubscribeChatRealtime();
     };
   }, [user?.id]);
 

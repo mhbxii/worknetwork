@@ -1,7 +1,6 @@
 import Chat from "@/components/ui/Chat";
 import { useAuth } from "@/store/authStore";
-import { useConversationsStore } from "@/store/useConversationStore";
-import { useMessagesStore } from "@/store/useMessageStore";
+import { useChatStore } from "@/store/useChatStore";
 import { MetaOption } from "@/types/entities";
 import { AntDesign } from "@expo/vector-icons";
 import dayjs from "dayjs";
@@ -22,9 +21,11 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
   const lastMessage = conversation.last_message;
   const isFromMe = lastMessage.sender.id === user?.id;
   const hasUnread = conversation.unread_count > 0;
-  
+
   // Get other user
-  const otherUser:MetaOption = conversation.participants.find((p:MetaOption) => p.id !== user?.id);
+  const otherUser: MetaOption = conversation.participants.find(
+    (p: MetaOption) => p.id !== user?.id
+  );
 
   return (
     <MotiView
@@ -55,7 +56,13 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
             marginRight: 12,
           }}
         >
-          <Text style={{ color: "#9ca3af", fontSize: 18, fontWeight: "600" }}>
+          <Text
+            style={{
+              color: "#9ca3af",
+              fontSize: 18,
+              fontWeight: "600",
+            }}
+          >
             {otherUser?.name.charAt(0).toUpperCase() || "U"}
           </Text>
         </View>
@@ -71,14 +78,14 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
           >
             {otherUser?.name || "Unknown User"}
           </Text>
-
+          
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             {isFromMe && (
-              <AntDesign 
-                name={lastMessage.is_read ? "check" : "clockcircleo"} 
-                size={12} 
-                color={lastMessage.is_read ? "#10b981" : "#9ca3af"} 
-                style={{ marginRight: 4 }} 
+              <AntDesign
+                name={lastMessage.is_read ? "check" : "clockcircleo"}
+                size={12}
+                color={lastMessage.is_read ? "#10b981" : "#9ca3af"}
+                style={{ marginRight: 4 }}
               />
             )}
             <Text
@@ -96,10 +103,15 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={{ color: "#9ca3af", fontSize: 12, marginBottom: 4 }}>
+          <Text
+            style={{
+              color: "#9ca3af",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {dayjs(lastMessage.created_at).fromNow()}
           </Text>
-
           {hasUnread && (
             <View
               style={{
@@ -135,20 +147,17 @@ export default function Messages() {
 
   const {
     conversations,
-    loading,
-    loadingMore,
-    hasMore,
+    conversationsLoading,
+    conversationsHasMore,
     fetchConversations,
     fetchMoreConversations,
-    subscribeToRealtime: subscribeToConversations,
-  } = useConversationsStore();
-
-  const { setCurrentConversation } = useMessagesStore();
+    setCurrentConversation,
+  } = useChatStore();
 
   // Refresh handler (force reload)
   const handleRefresh = useCallback(() => {
     if (user && user.id) {
-      fetchConversations({id: user.id, name: user.name} as MetaOption, true);
+      fetchConversations({ id: user.id, name: user.name }, true);
     }
   }, [user, fetchConversations]);
 
@@ -165,23 +174,27 @@ export default function Messages() {
   };
 
   const loadMore = () => {
-    if (hasMore && user?.id && !loadingMore) {
-      fetchMoreConversations({id: user.id, name: user.name} as MetaOption);
+    if (conversationsHasMore && user?.id && !conversationsLoading) {
+      fetchMoreConversations({ id: user.id, name: user.name });
     }
   };
 
   if (currentView === "chat" && selectedConversation) {
     return (
-      <Chat
-        conversationId={selectedConversation}
-        onBack={handleBackToList}
-      />
+      <Chat conversationId={selectedConversation} onBack={handleBackToList} />
     );
   }
 
-  if (loading && conversations.length === 0) {
+  if (conversationsLoading && conversations.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#111827" }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#111827",
+        }}
+      >
         <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
@@ -192,7 +205,10 @@ export default function Messages() {
       <FlatList
         data={conversations}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={conversationsLoading}
+            onRefresh={handleRefresh}
+          />
         }
         renderItem={({ item }) => (
           <ConversationCard
@@ -204,16 +220,25 @@ export default function Messages() {
         onEndReached={loadMore}
         onEndReachedThreshold={0.2}
         ListFooterComponent={
-          loadingMore ? (
+          conversationsLoading ? (
             <View style={{ paddingVertical: 16 }}>
               <ActivityIndicator size="small" color="#2563eb" />
             </View>
           ) : null
         }
         ListEmptyComponent={
-          !loading ? (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingTop: 100 }}>
-              <Text style={{ color: "#9ca3af", fontSize: 16 }}>No conversations yet</Text>
+          !conversationsLoading ? (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingTop: 100,
+              }}
+            >
+              <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+                No conversations yet
+              </Text>
             </View>
           ) : null
         }
