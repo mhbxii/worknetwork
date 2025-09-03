@@ -1,11 +1,12 @@
+// Profile.tsx (modified header ownership)
 import AboutModal from "@/components/ui/AboutModal";
 import HelpSupportModal from "@/components/ui/HelpSupportModal";
 import SignOutModal from "@/components/ui/SignOutModal";
 import { useAuth } from "@/store/authStore";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useNavigation } from "expo-router";
+import React, { useLayoutEffect, useState } from "react";
 import { FlatList, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Avatar, Surface } from "react-native-paper";
 
@@ -19,9 +20,54 @@ interface MenuItem {
 
 export default function Profile() {
   const { user, profile, initialized } = useAuth();
+  const navigation = useNavigation();
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+
+  // set navigator header once, using user/profile data
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      headerStyle: {
+        backgroundColor: "#1a1a2e",
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(255,255,255,0.06)",
+      },
+      headerTintColor: "#fff",
+      headerTitle: () => (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: "#374151",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: "#9ca3af", fontSize: 14, fontWeight: "600" }}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            </Text>
+          </View>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: "#fff",
+              fontSize: 20,
+              fontWeight: "600",
+              marginLeft: 10,
+              maxWidth: 220,
+            }}
+          >
+            Profile
+          </Text>
+        </View>
+      ),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, user?.name]);
 
   const menuItems: MenuItem[] = [
     {
@@ -29,21 +75,21 @@ export default function Profile() {
       title: "View/Edit Profile",
       icon: "account-edit",
       type: "screen",
-      action: () => router.push("/profile/edit"),
+      action: () => router.push('/profile/ViewEditProfile'),
     },
     {
       id: "account",
       title: "Account Settings",
       icon: "cog",
       type: "screen",
-      action: () => router.push("/profile/account"),
+      action: () => router.push("/profile/AccountSettings"),
     },
     {
       id: "password",
       title: "Change Password",
       icon: "lock-reset",
       type: "screen",
-      action: () => router.push("/profile/password"),
+      action: () => router.push("/profile/ChangePassword"),
     },
     {
       id: "help",
@@ -136,11 +182,11 @@ export default function Profile() {
     <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <SafeAreaView style={styles.container}>
-        {/* Profile Header */}
-        <Surface style={styles.profileHeader} elevation={3}>
+        {/* Profile Header -- reduced visual (no duplicate nav header) */}
+        <Surface style={[styles.profileHeader, { marginTop: 12 }]} elevation={3}>
           <View style={styles.profileContent}>
             <Avatar.Text
-              size={80}
+              size={64} // slightly smaller because navigator header carries main identity
               label={getUserDisplayName().charAt(0).toUpperCase()}
               style={styles.avatar}
               labelStyle={styles.avatarLabel}
@@ -181,6 +227,8 @@ export default function Profile() {
     </LinearGradient>
   );
 }
+
+// keep your styles unchanged (omitted above for brevity — keep original StyleSheet)
 
 const styles = StyleSheet.create({
   container: {

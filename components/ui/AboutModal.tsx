@@ -3,16 +3,16 @@ import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-    Linking,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Linking,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import {
-    IconButton,
-    Surface,
-    Text,
+  IconButton,
+  Surface,
+  Text,
 } from 'react-native-paper';
 
 interface Props {
@@ -53,7 +53,7 @@ export default function AboutModal({ visible, onClose }: Props) {
       id: 'developer',
       icon: 'account-circle',
       title: 'Created By',
-      content: 'Moheb Jr',
+      content: 'Moheb Ben Hamad',
       action: null,
     },
     {
@@ -62,13 +62,6 @@ export default function AboutModal({ visible, onClose }: Props) {
       title: 'Contact Developer',
       content: 'mohebjr999@gmail.com',
       action: handleEmailPress,
-    },
-    {
-      id: 'description',
-      icon: 'briefcase-outline',
-      title: 'About JobConnect',
-      content: 'Your gateway to career opportunities. Connect with employers, showcase your skills, and find your dream job.',
-      action: null,
     },
   ];
 
@@ -103,7 +96,7 @@ export default function AboutModal({ visible, onClose }: Props) {
                   color="#fff"
                 />
               </Surface>
-              <Text style={styles.appName}>JobConnect</Text>
+              <Text style={styles.appName}>WorkNetwork</Text>
             </View>
 
             {/* About Sections */}
@@ -155,7 +148,7 @@ export default function AboutModal({ visible, onClose }: Props) {
                 Made with ❤️ for connecting talent with opportunity
               </Text>
               <Text style={styles.copyrightText}>
-                © 2024 JobConnect. All rights reserved.
+                © 2025 WorkNetwork. All rights reserved.
               </Text>
             </View>
           </LinearGradient>

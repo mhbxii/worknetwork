@@ -18,25 +18,31 @@ export function usePanelHandlers() {
   const [bottomPanelMode, setBottomPanelMode] = useState<BottomPanelMode>(null);
   const [bottomPanelVisible, setBottomPanelVisible] = useState(false);
 
-  // Memoize the user role to prevent unnecessary callback recreations
   const userRole = useMemo(() => user?.role?.name, [user?.role?.name]);
 
-  // Helper to close all panels
+  // Helper to close all panels and clear selection/modes
   const closeAllPanels = useCallback(() => {
     setPanelVisible(false);
     setBottomPanelVisible(false);
+    // keep modes/selected cleared to avoid stale renders
+    setPanelMode(null);
+    setBottomPanelMode(null);
+    setSelectedJob(null);
+    setSelectedBottomJob(null);
   }, []);
 
   const handlePress = useCallback(
     (job: Job) => {
-      // Close any open panels first
+      // Close any open panels first (makes behavior predictable)
       closeAllPanels();
-      
-      
+
       if (userRole === "candidate") {
+        setSelectedJob(job);                // <- essential
         setPanelMode("candidateDetails");
         setPanelVisible(true);
       } else if (userRole === "recruiter") {
+        // ensure side panel cleared when opening bottom panel
+        setSelectedJob(null);
         setSelectedBottomJob(job);
         setBottomPanelMode("recruiterActions");
         setBottomPanelVisible(true);
@@ -48,7 +54,6 @@ export function usePanelHandlers() {
   const handleLongPress = useCallback(
     (job: Job) => {
       if (userRole === "recruiter") {
-        // Close any open panels first
         closeAllPanels();
         setSelectedJob(job);
         setPanelMode("recruiterDetails");
@@ -58,9 +63,17 @@ export function usePanelHandlers() {
     [userRole, closeAllPanels]
   );
 
-  // Memoized panel close handlers
-  const closeSidePanel = useCallback(() => setPanelVisible(false), []);
-  const closeBottomPanel = useCallback(() => setBottomPanelVisible(false), []);
+  // Close handlers (exposed as named functions)
+  const closeSidePanel = useCallback(() => {
+    setPanelVisible(false);
+    setPanelMode(null);
+    setSelectedJob(null);
+  }, []);
+  const closeBottomPanel = useCallback(() => {
+    setBottomPanelVisible(false);
+    setBottomPanelMode(null);
+    setSelectedBottomJob(null);
+  }, []);
 
   return {
     // Side panel

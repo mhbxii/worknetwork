@@ -1,3 +1,4 @@
+// Messages.tsx — replace your current file with this
 import Chat from "@/components/ui/Chat";
 import { useAuth } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
@@ -5,8 +6,9 @@ import { MetaOption } from "@/types/entities";
 import { AntDesign } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useNavigation } from "expo-router";
 import { MotiView } from "moti";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useLayoutEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 
 dayjs.extend(relativeTime);
@@ -63,7 +65,7 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
               fontWeight: "600",
             }}
           >
-            {otherUser?.name.charAt(0).toUpperCase() || "U"}
+            {otherUser?.name?.charAt(0).toUpperCase() || "U"}
           </Text>
         </View>
 
@@ -142,6 +144,7 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
 
 export default function Messages() {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const [currentView, setCurrentView] = useState<"list" | "chat">("list");
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
 
@@ -153,6 +156,73 @@ export default function Messages() {
     fetchMoreConversations,
     setCurrentConversation,
   } = useChatStore();
+
+  // Navigation header control: compute current chat participant
+  const currentConversation = selectedConversation
+    ? conversations.find((c: any) => c.id === selectedConversation)
+    : null;
+  const currentOtherUser = currentConversation
+    ? currentConversation.participants.find((p: any) => p.id !== user?.id)
+    : null;
+
+  // Set header depending on view
+  useLayoutEffect(() => {
+    if (currentView === "chat" && selectedConversation && currentOtherUser) {
+      navigation.setOptions({
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: "#1f2937",
+          borderBottomWidth: 1,
+          borderBottomColor: "#374151",
+        },
+        headerTintColor: "#fff",
+        headerTitle: () => (
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: "#374151",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "#9ca3af", fontSize: 14, fontWeight: "600" }}>
+                {currentOtherUser?.name ? currentOtherUser.name.charAt(0).toUpperCase() : "U"}
+              </Text>
+            </View>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: "#fff",
+                fontSize: 18,
+                fontWeight: "600",
+                marginLeft: 10,
+                maxWidth: 200,
+              }}
+            >
+              {currentOtherUser?.name ?? "Chat"}
+            </Text>
+          </View>
+        ),
+        headerLeft: () => (
+          <Pressable onPress={handleBackToList} style={{ marginLeft: 12 }}>
+            <AntDesign name="arrowleft" size={24} color="#fff" />
+          </Pressable>
+        ),
+      });
+    } else {
+      // restore default header for messages list
+      navigation.setOptions({
+        headerShown: true,
+        headerTitle: "Messages",
+        headerLeft: undefined,
+        headerStyle: undefined,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, currentView, selectedConversation, conversations, user?.id]);
 
   // Refresh handler (force reload)
   const handleRefresh = useCallback(() => {

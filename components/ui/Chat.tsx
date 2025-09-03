@@ -184,57 +184,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
       style={{ flex: 1, backgroundColor: "#111827" }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 16,
-          backgroundColor: "#1f2937",
-          borderBottomWidth: 1,
-          borderBottomColor: "#374151",
-        }}
-      >
-        <Pressable onPress={onBack} style={{ marginRight: 12 }}>
-          <AntDesign name="arrowleft" size={24} color="#fff" />
-        </Pressable>
-        
-        {otherUser && (
-          <>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: "#374151",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 16,
-                  fontWeight: "600",
-                }}
-              >
-                {otherUser.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 18,
-                fontWeight: "600",
-                flex: 1,
-              }}
-            >
-              {otherUser.name}
-            </Text>
-          </>
-        )}
-      </View>
+      
 
       {/* Messages */}
       <FlatList

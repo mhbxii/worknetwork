@@ -118,7 +118,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
-          headerRight: () => <AddJobBtn />,
+          headerRight: () => user?.role.name === "recruiter" && <AddJobBtn />,
         }}
       />
       <Tabs.Screen
