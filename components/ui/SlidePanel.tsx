@@ -60,7 +60,7 @@ export const SlidePanel = React.memo<SlidePanelProps>(({
   if (!visible) return null;
 
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, { paddingTop: 14 }]}>
       {/* Backdrop */}
       <Animated.View
         pointerEvents={visible ? "auto" : "none"}
@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 10,
     overflow: "hidden",
+    marginTop: 14,
   },
   closeBtn: {
     position: "absolute",
@@ -129,6 +130,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 0.5,
     borderColor: "rgba(255,255,255,0.06)",
+    marginTop: 14, // avoid notch on iOS
   },
   closeBtnText: {
     color: "#fff",

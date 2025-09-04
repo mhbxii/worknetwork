@@ -1,4 +1,6 @@
+// JobList.tsx — patched to forward onScroll
 import type { Job } from "@/types/entities";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
@@ -13,22 +15,25 @@ type Props = {
   onLoadMore: () => void;
   onPress: (job: Job) => void;
   onLongPress: (job: Job) => void;
+  onScroll?: (event: any) => void; // <-- new optional prop
+  headerSpacerHeight?: number; // <-- new optional prop
 };
 
-export function JobList({ 
-  jobs, 
-  loading, 
-  loadingMore, 
+export function JobList({
+  jobs,
+  loading,
+  loadingMore,
   hasMore,
-  onRefresh, 
+  onRefresh,
   onLoadMore,
-  onPress, 
-  onLongPress 
+  onPress,
+  onLongPress,
+  onScroll,
+  headerSpacerHeight = 0,
 }: Props) {
-  
   const renderFooter = () => {
     if (!loadingMore) return null;
-    
+
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator animating size="small" />
@@ -52,25 +57,28 @@ export function JobList({
   }
 
   return (
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={styles.container}>
     <FlatList
       data={jobs}
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => (
-        <JobCard
-          job={item}
-          onPress={onPress}
-          onLongPress={onLongPress}
-        />
+        <JobCard job={item} onPress={onPress} onLongPress={onLongPress} />
       )}
+      // <-- spacer that pushes content below your absolute header
+      ListHeaderComponent={headerSpacerHeight ? <View style={{ height: headerSpacerHeight }} /> : null}
       refreshControl={
         <RefreshControl refreshing={loading} onRefresh={onRefresh} />
       }
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.75}
       ListFooterComponent={renderFooter}
-      contentContainerStyle={(jobs ?? []).length === 0 ? styles.flatListEmpty : undefined}
+      contentContainerStyle={
+        (jobs ?? []).length === 0 ? styles.flatListEmpty : undefined
+      }
       showsVerticalScrollIndicator={false}
-    />
+      onScroll={onScroll} // <-- forward scroll events
+      scrollEventThrottle={16} // <-- important for smooth animations
+    /></LinearGradient>
   );
 }
 
@@ -97,5 +105,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: "#666",
+  },
+  container: {
+    flex: 1,
   },
 });
