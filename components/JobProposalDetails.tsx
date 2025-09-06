@@ -24,6 +24,7 @@ export const JobProposalDetails: React.FC<JobProposalDetailsProps> = ({
   const handleProposalPress = useCallback((proposal: Proposal) => {
     // Handle proposal expansion (already handled in ProposalCard)
     console.log("Proposal pressed:", proposal.id);
+    //send notification to candidate that their proposal was viewed.
   }, []);
 
   const handleProposalLongPress = useCallback((proposal: Proposal) => {

@@ -2,36 +2,93 @@ import { useAIMatching } from "@/hooks/useAIMatching";
 import { supabase } from "@/lib/supabase";
 import { createMatchingPrompt } from "@/services/createMatchingPrompt"; // or wherever you put it
 import { useAuth } from "@/store/authStore";
+import { useChatStore } from "@/store/useChatStore";
 import { useJobStore } from "@/store/useJobStore";
-import { Job, RecruiterProfile } from "@/types/entities";
+import { FetchedRecruiter, Job } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  TextInput,
+  View
 } from "react-native";
 
 interface CandidateJobDetailsProps {
   job: Job;
 }
 
+interface ToastProps {
+  message: string;
+  type: "success" | "error";
+  visible: boolean;
+  onHide: () => void;
+}
+
+// Reusable Toast Component
+const Toast: React.FC<ToastProps> = ({ message, type, visible, onHide }) => {
+  useEffect(() => {
+    if (visible) {
+      const timer = setTimeout(() => {
+        onHide();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, onHide]);
+
+  if (!visible) return null;
+
+  return (
+    <View
+      style={[
+        styles.toast,
+        type === "success" ? styles.toastSuccess : styles.toastError,
+      ]}
+    >
+      <MaterialCommunityIcons
+        name={type === "success" ? "check-circle" : "alert-circle"}
+        size={16}
+        color="#fff"
+      />
+      <Text style={styles.toastText}>{message}</Text>
+    </View>
+  );
+};
+
 export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
   job,
 }) => {
   const { profile, user, setProfile } = useAuth();
   const { updateJobApplication } = useJobStore();
+  const { sendMessage } = useChatStore();
   const [nbProposals, setNbProposals] = useState(
     "nb_proposals" in profile! ? profile.nb_proposals ?? 0 : 0
   );
-  const [recruiters, setRecruiters] = useState<RecruiterProfile[]>([]);
+  const [recruiters, setRecruiters] = useState<FetchedRecruiter[]>([]);
   const [loading, setLoading] = useState(true);
   const [isApplied, setIsApplied] = useState(job.applied ?? false);
   const [applying, setApplying] = useState(false);
   const { calculateMatchingScore } = useAIMatching();
+
+  // Message modal state
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [selectedRecruiter, setSelectedRecruiter] = useState<FetchedRecruiter | null>(null);
+  const [messageText, setMessageText] = useState("");
+
+  // Toast state
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({
+    visible: false,
+    message: "",
+    type: "success",
+  });
 
   useEffect(() => {
     async function fetchRecruiters() {
@@ -76,6 +133,57 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
 
   const updateJobInStore = (jobId: number) => {
     updateJobApplication(jobId, true);
+  };
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ visible: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, visible: false }));
+  };
+
+  const handleMessage = (recruiter: FetchedRecruiter) => {
+    setSelectedRecruiter(recruiter);
+    setMessageText("");
+    setMessageModalVisible(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (
+      !messageText.trim() ||
+      messageText.length < 1 ||
+      messageText.length > 255
+    ) {
+      showToast("Message must be between 1 and 255 characters", "error");
+      return;
+    }
+
+    if (!selectedRecruiter || !user) {
+      showToast("Unable to send message", "error");
+      return;
+    }
+
+    // Close modal immediately
+    setMessageModalVisible(false);
+    setSelectedRecruiter(null);
+
+    // Send message in background
+    try {
+      await sendMessage(user.id, selectedRecruiter.user_id, messageText.trim());
+      showToast("Message sent successfully", "success");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      showToast("Failed to send message", "error");
+    }
+
+    setMessageText("");
+  };
+
+  const closeMessageModal = () => {
+    setMessageModalVisible(false);
+    setSelectedRecruiter(null);
+    setMessageText("");
   };
 
   const handleJobApplication = async () => {
@@ -188,181 +296,245 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={2}>
-          {job.title}
-        </Text>
-
-        <View style={styles.metaRow}>
-          <View style={styles.companySection}>
-            <MaterialCommunityIcons name="domain" size={16} color="#cfcfba" />
-            <Text style={styles.companyText}>{job.company.name}</Text>
-          </View>
-
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(job.status.name) },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={
-                job.status.name?.toLowerCase() === "open"
-                  ? "briefcase-check"
-                  : "briefcase"
-              }
-              size={12}
-              color="#fff"
-            />
-            <Text style={styles.statusText}>
-              {job.status?.name.toUpperCase() || "OPEN"}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.dateRow}>
-          <MaterialCommunityIcons name="calendar" size={14} color="#bdbdbd" />
-          <Text style={styles.dateText}>
-            Posted {formatDate(job.created_at)}
+    <>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Text style={styles.title} numberOfLines={2}>
+            {job.title}
           </Text>
-        </View>
 
-        {/* Candidates Count */}
-        {job.nb_candidates !== null && job.nb_candidates > 0 && (
-          <View style={styles.candidatesRow}>
-            <MaterialCommunityIcons
-              name="account-group"
-              size={14}
-              color="#7c4dff"
-            />
-            <Text style={styles.candidatesText}>
-              {job.nb_candidates} candidate{job.nb_candidates !== 1 ? "s" : ""}{" "}
-              applied
-            </Text>
-          </View>
-        )}
-      </View>
+          <View style={styles.metaRow}>
+            <View style={styles.companySection}>
+              <MaterialCommunityIcons name="domain" size={16} color="#cfcfba" />
+              <Text style={styles.companyText}>{job.company.name}</Text>
+            </View>
 
-      {/* Description Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.description}>
-          {job.description || "No description provided."}
-        </Text>
-      </View>
-
-      {/* Details Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Details</Text>
-        <View style={styles.detailsGrid}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Category</Text>
-            <Text style={styles.detailValue}>{job.category.name}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Skills Section */}
-      {job.skills && job.skills.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Required Skills</Text>
-          <View style={styles.skillsContainer}>
-            {job.skills.map((skill, index) => (
-              <View key={index} style={styles.skillChip}>
-                <Text style={styles.skillText}>{skill.name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* Apply Section */}
-      <View style={styles.section}>
-        <Pressable
-          style={[
-            styles.applyButton,
-            (nbProposals <= 0 || isApplied || applying) &&
-              styles.applyButtonDisabled,
-          ]}
-          disabled={nbProposals <= 0 || applying}
-          onPress={handleJobApplication}
-        >
-          {applying ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            !isApplied && (
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(job.status.name) },
+              ]}
+            >
               <MaterialCommunityIcons
-                name="send"
-                size={20}
-                color={nbProposals <= 0 ? "#666" : "#fff"}
+                name={
+                  job.status.name?.toLowerCase() === "open"
+                    ? "briefcase-check"
+                    : "briefcase"
+                }
+                size={12}
+                color="#fff"
               />
-            )
-          )}
-          <Text style={styles.applyButtonText}>
-            {applying
-              ? "Applying..."
-              : isApplied
-              ? `Applied (${nbProposals} proposals left)`
-              : `Apply (${nbProposals} proposals left)`}
-          </Text>
-        </Pressable>
-
-        {nbProposals <= 0 && (
-          <Text style={styles.noProposalsText}>
-            You've used all your proposals for this period
-          </Text>
-        )}
-      </View>
-
-      {/* Recruiters Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Team Members</Text>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#7c4dff" />
-            <Text style={styles.loadingText}>Loading team members...</Text>
+              <Text style={styles.statusText}>
+                {job.status?.name.toUpperCase() || "OPEN"}
+              </Text>
+            </View>
           </View>
-        ) : (
-          <View style={styles.recruitersContainer}>
-            {recruiters.map((recruiter, index) => (
-              <View key={index} style={styles.recruiterCard}>
-                <View style={styles.recruiterInfo}>
-                  <View style={styles.recruiterAvatar}>
+
+          <View style={styles.dateRow}>
+            <MaterialCommunityIcons name="calendar" size={14} color="#bdbdbd" />
+            <Text style={styles.dateText}>
+              Posted {formatDate(job.created_at)}
+            </Text>
+          </View>
+
+          {/* Candidates Count */}
+          {job.nb_candidates !== null && job.nb_candidates > 0 && (
+            <View style={styles.candidatesRow}>
+              <MaterialCommunityIcons
+                name="account-group"
+                size={14}
+                color="#7c4dff"
+              />
+              <Text style={styles.candidatesText}>
+                {job.nb_candidates} candidate
+                {job.nb_candidates !== 1 ? "s" : ""} applied
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Description Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.description}>
+            {job.description || "No description provided."}
+          </Text>
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Details</Text>
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Category</Text>
+              <Text style={styles.detailValue}>{job.category.name}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Skills Section */}
+        {job.skills && job.skills.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Required Skills</Text>
+            <View style={styles.skillsContainer}>
+              {job.skills.map((skill, index) => (
+                <View key={index} style={styles.skillChip}>
+                  <Text style={styles.skillText}>{skill.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Apply Section */}
+        <View style={styles.section}>
+          <Pressable
+            style={[
+              styles.applyButton,
+              (nbProposals <= 0 || isApplied || applying) &&
+                styles.applyButtonDisabled,
+            ]}
+            disabled={nbProposals <= 0 || applying}
+            onPress={handleJobApplication}
+          >
+            {applying ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              !isApplied && (
+                <MaterialCommunityIcons
+                  name="send"
+                  size={20}
+                  color={nbProposals <= 0 ? "#666" : "#fff"}
+                />
+              )
+            )}
+            <Text style={styles.applyButtonText}>
+              {applying
+                ? "Applying..."
+                : isApplied
+                ? `Applied (${nbProposals} proposals left)`
+                : `Apply (${nbProposals} proposals left)`}
+            </Text>
+          </Pressable>
+
+          {nbProposals <= 0 && (
+            <Text style={styles.noProposalsText}>
+              You've used all your proposals for this period
+            </Text>
+          )}
+        </View>
+
+        {/* Recruiters Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Team Members</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#7c4dff" />
+              <Text style={styles.loadingText}>Loading team members...</Text>
+            </View>
+          ) : (
+            <View style={styles.recruitersContainer}>
+              {recruiters.map((recruiter, index) => (
+                <View key={index} style={styles.recruiterCard}>
+                  <View style={styles.recruiterInfo}>
+                    <View style={styles.recruiterAvatar}>
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={20}
+                        color="#7c4dff"
+                      />
+                    </View>
+                    <View style={styles.recruiterDetails}>
+                      <Text style={styles.recruiterName}>
+                        {recruiter.position_title}
+                      </Text>
+                      <Text style={styles.recruiterCompany}>
+                        {recruiter.company?.name}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    style={styles.messageButton}
+                    onPress={() => handleMessage(recruiter)}
+                  >
                     <MaterialCommunityIcons
-                      name="account"
-                      size={20}
+                      name="message"
+                      size={16}
                       color="#7c4dff"
                     />
-                  </View>
-                  <View style={styles.recruiterDetails}>
-                    <Text style={styles.recruiterName}>
-                      {recruiter.position_title}
-                    </Text>
-                    <Text style={styles.recruiterCompany}>
-                      {recruiter.company?.name}
-                    </Text>
-                  </View>
+                    <Text style={styles.messageButtonText}>Message</Text>
+                  </Pressable>
                 </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
-                <Pressable
-                  style={styles.messageButton}
-                  onPress={() => alert(`Message ${recruiter.position_title}`)}
-                >
-                  <MaterialCommunityIcons
-                    name="message"
-                    size={16}
-                    color="#7c4dff"
-                  />
-                  <Text style={styles.messageButtonText}>Message</Text>
-                </Pressable>
-              </View>
-            ))}
+      {/* Message Modal */}
+      <Modal
+        visible={messageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMessageModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Message {selectedRecruiter?.position_title}
+                {selectedRecruiter?.company?.name}
+              </Text>
+              <Pressable onPress={closeMessageModal}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color="#fafafa"
+                />
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Type your message here..."
+              placeholderTextColor="#bdbdbd"
+              multiline
+              value={messageText}
+              onChangeText={setMessageText}
+              maxLength={255}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.inputFooter}>
+              <Text style={styles.charCounter}>{messageText.length}/255</Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              
+
+              <Pressable
+                style={[styles.modalButton, styles.sendButton, (messageText.trim().length < 1 || messageText.length > 255) && styles.sendButtonDisabled]}
+                onPress={handleSendMessage}
+                disabled={messageText.trim().length < 1 || messageText.length > 255}
+              >
+                <MaterialCommunityIcons name="send" size={16} color="#fff" />
+                <Text style={styles.sendButtonText}>Send</Text>
+              </Pressable>
+            </View>
           </View>
-        )}
-      </View>
-    </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+      />
+    </>
   );
 };
 
@@ -580,5 +752,118 @@ const styles = StyleSheet.create({
     color: "#7c4dff",
     marginLeft: 4,
     fontWeight: "500",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: "#1e1e1e",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fafafa",
+    flex: 1,
+    marginRight: 10,
+  },
+  messageInput: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    padding: 16,
+    color: "#fafafa",
+    fontSize: 14,
+    minHeight: 100,
+    maxHeight: 150,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    marginBottom: 8,
+  },
+  inputFooter: {
+    alignItems: "flex-end",
+    marginBottom: 20,
+  },
+  charCounter: {
+    fontSize: 12,
+    color: "#bdbdbd",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+  cancelButton: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  sendButton: {
+    backgroundColor: "#7c4dff",
+  },
+  cancelButtonText: {
+    color: "#fafafa",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  sendButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  // Toast styles
+  toast: {
+    position: "absolute",
+    bottom: 60,
+    left: 20,
+    right: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  toastSuccess: {
+    backgroundColor: "#4caf50",
+  },
+  toastError: {
+    backgroundColor: "#f44336",
+  },
+  toastText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 8,
+    flex: 1,
+  },
+  sendButtonDisabled: {
+    backgroundColor: "rgba(124, 77, 255, 0.2)",
   },
 });

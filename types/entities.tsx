@@ -1,5 +1,10 @@
 export type MetaOption = { id: number; name: string };
 
+// Extended interface for recruiters fetched from database
+export interface FetchedRecruiter extends RecruiterProfile {
+  user_id: number;
+}
+
 export interface Message {
   id: number;
   sender: MetaOption;
