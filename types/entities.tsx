@@ -41,6 +41,7 @@ export interface Proposal {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   matched_score: number | null;
+  viewed: boolean | null;
 }
 
 export type Job = {
