@@ -71,7 +71,7 @@ export default function ProposalCard({ proposal, onPress, onLongPress }: Props) 
           </Text>
           {proposal.matched_score && (
             <Text style={styles.matchScore}>
-              Match: {Math.round(proposal.matched_score)}%
+              Match: {proposal.matched_score}/10
             </Text>
           )}
         </View>

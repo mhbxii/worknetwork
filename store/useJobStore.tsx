@@ -13,6 +13,10 @@ interface JobsState {
   lastFetchKey: string | null;
   error: string | null;
 
+  // Search state
+  searchTerm: string;
+  isSearching: boolean;
+
   // Actions
   updateJobApplication: (jobId: number, applied: boolean) => void;
   updateJob: (jobId: number, updates: Partial<Job>) => void;
@@ -22,24 +26,33 @@ interface JobsState {
     force?: boolean
   ) => Promise<void>;
   fetchMoreJobs: (user: User, profile: UserProfile) => Promise<void>;
+  setSearchTerm: (term: string) => void;
+  clearSearch: () => void;
   reset: () => void;
 }
 
 // Helper to create a unique fetch key
-function createFetchKey(user: User, profile: UserProfile): string {
-  if (user.role.name === "recruiter" && "company" in profile) {
-    return `recruiter_${profile.company?.id}`;
-  } else if (user.role.name === "candidate" && "job_category" in profile) {
-    return `candidate_${profile.job_category?.id}`;
-  }
-  return `${user.role.name}_${user.id}`;
+function createFetchKey(
+  user: User,
+  profile: UserProfile,
+  searchTerm?: string
+): string {
+  const baseKey =
+    user.role.name === "recruiter" && "company" in profile
+      ? `recruiter_${profile.company?.id}`
+      : user.role.name === "candidate" && "job_category" in profile
+      ? `candidate_${profile.job_category?.id}`
+      : `${user.role.name}_${user.id}`;
+
+  return searchTerm ? `${baseKey}_search_${searchTerm}` : baseKey;
 }
 
 function buildJobQuery(
   user: User,
   profile: UserProfile,
   page = 0,
-  pageSize = PAGE_SIZE
+  pageSize = PAGE_SIZE,
+  searchTerm?: string
 ) {
   let query = supabase
     .from("jobs")
@@ -58,9 +71,9 @@ function buildJobQuery(
       job_applications(candidate_id)
     `
     )
-    .order("created_at", { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
+  // Base role filtering
   if (user.role.name === "recruiter" && "company" in profile) {
     query = query.eq("company_id", profile.company?.id);
   } else if (user.role.name === "candidate" && "job_category" in profile) {
@@ -70,8 +83,76 @@ function buildJobQuery(
       foreignTable: "job_applications",
     });
   }
-  console.log(`Query range: ${page * pageSize} to ${(page + 1) * pageSize - 1}`);
+
+  // Search filtering and ordering
+  if (searchTerm && searchTerm.length >= 2) {
+    const searchPattern = `%${searchTerm}%`;
+
+    // Add search conditions
+    query = query.or(
+      `title.ilike.${searchPattern},description.ilike.${searchPattern}`
+    );
+
+    // Order by relevance using CASE WHEN, then by created_at
+    query = query.order("created_at", { ascending: false }); // We'll handle relevance in post-processing
+  } else {
+    // Default ordering
+    query = query.order("created_at", { ascending: false });
+  }
+
+  console.log(
+    `Query range: ${page * pageSize} to ${(page + 1) * pageSize - 1}`,
+    searchTerm ? `Search: "${searchTerm}"` : ""
+  );
   return query;
+}
+
+// Function to calculate relevance score and sort results
+function sortJobsByRelevance(jobs: Job[], searchTerm: string): Job[] {
+  if (!searchTerm || searchTerm.length < 2) return jobs;
+
+  const term = searchTerm.toLowerCase();
+
+  return jobs
+    .map((job) => {
+      let score = 0;
+
+      // Title match (priority 4)
+      if (job.title.toLowerCase().includes(term)) {
+        score += 4;
+      }
+
+      // Skills match (priority 3)
+      if (
+        job.skills &&
+        job.skills.some((skill) => skill.name.toLowerCase().includes(term))
+      ) {
+        score += 3;
+      }
+
+      // Company match (priority 2)
+      if (job.company.name.toLowerCase().includes(term)) {
+        score += 2;
+      }
+
+      // Description match (priority 1)
+      if (job.description && job.description.toLowerCase().includes(term)) {
+        score += 1;
+      }
+
+      return { ...job, _searchScore: score };
+    })
+    .filter((job) => job._searchScore > 0) // Only include jobs with matches
+    .sort((a, b) => {
+      // First by search score (desc), then by created_at (desc)
+      if (b._searchScore !== a._searchScore) {
+        return b._searchScore - a._searchScore;
+      }
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    })
+    .map(({ _searchScore, ...job }) => job); // Remove the score field
 }
 
 export const useJobStore = create<JobsState>((set, get) => ({
@@ -82,6 +163,8 @@ export const useJobStore = create<JobsState>((set, get) => ({
   hasMore: true,
   lastFetchKey: null,
   error: null,
+  searchTerm: "",
+  isSearching: false,
 
   updateJobApplication: (jobId, applied) => {
     const currentState = get();
@@ -107,11 +190,24 @@ export const useJobStore = create<JobsState>((set, get) => ({
     set({ jobs: updatedJobs });
   },
 
-  fetchJobs: async (user: User, profile: UserProfile, force = false) => {
-    const fetchKey = createFetchKey(user, profile);
-    const currentState = get();
+  setSearchTerm: (term: string) => {
+    set({ searchTerm: term });
+  },
 
-    // Prevent duplicate fetches for the same user/profile combo
+  clearSearch: () => {
+    const currentState = get();
+    set({ searchTerm: "", isSearching: false });
+
+    // Refetch jobs without search to restore original list
+    // We need to get user and profile from somewhere - this might need to be called from the component
+    console.log("JobStore: Search cleared, will need to refetch jobs");
+  },
+
+  fetchJobs: async (user: User, profile: UserProfile, force = false) => {
+    const currentState = get();
+    const fetchKey = createFetchKey(user, profile, currentState.searchTerm);
+
+    // Prevent duplicate fetches for the same user/profile/search combo
     if (currentState.loading && currentState.lastFetchKey === fetchKey) {
       console.log("JobStore: Skipping duplicate fetch (loading) for", fetchKey);
       return;
@@ -130,10 +226,13 @@ export const useJobStore = create<JobsState>((set, get) => ({
       return;
     }
 
+    const isSearchActive =
+      currentState.searchTerm && currentState.searchTerm.length >= 2;
     console.log(
       "JobStore: Fetching jobs for",
       fetchKey,
-      force ? "(forced)" : ""
+      force ? "(forced)" : "",
+      isSearchActive ? `(search: "${currentState.searchTerm}")` : ""
     );
 
     try {
@@ -143,22 +242,31 @@ export const useJobStore = create<JobsState>((set, get) => ({
         error: null,
         page: 0,
         hasMore: true,
+        isSearching: !!isSearchActive,
       });
 
-      const query = buildJobQuery(user, profile, 0, PAGE_SIZE);
+      const query = buildJobQuery(
+        user,
+        profile,
+        0,
+        PAGE_SIZE,
+        currentState.searchTerm
+      );
       const { data, error } = await query;
 
       if (error) throw error;
 
-      const mappedJobs = (data ?? []).map((job: any) => ({
+      let mappedJobs = (data ?? []).map((job: any) => ({
         id: job.id,
         title: job.title,
         description: job.description,
         created_at: job.created_at,
-        status: job.status,
-        company: job.company,
-        category: job.category,
-        skills: (job.skills || []).map((s: any) => s.skill),
+        status: Array.isArray(job.status) ? job.status[0] : job.status, // assuming it's an array
+        company: Array.isArray(job.company) ? job.company[0] : job.company,
+        category: Array.isArray(job.category) ? job.category[0] : job.category,
+        skills: Array.isArray(job.skills)
+          ? job.skills.flatMap((s: any) => s.skill ?? [])
+          : [], // ← always an array
         applied:
           user.role.name === "candidate"
             ? job.job_applications?.some(
@@ -167,6 +275,25 @@ export const useJobStore = create<JobsState>((set, get) => ({
             : false,
         nb_candidates: job.job_applications?.length || 0,
       }));
+
+      // Apply client-side relevance sorting for search results
+      if (isSearchActive) {
+        mappedJobs = sortJobsByRelevance(
+          mappedJobs,
+          currentState.searchTerm
+        ) as {
+          id: any;
+          title: any;
+          description: any;
+          created_at: any;
+          status: any;
+          company: any;
+          category: any;
+          skills: any;
+          applied: any;
+          nb_candidates: any;
+        }[];
+      }
 
       set({
         jobs: mappedJobs,
@@ -175,7 +302,12 @@ export const useJobStore = create<JobsState>((set, get) => ({
         hasMore: mappedJobs.length === PAGE_SIZE,
       });
 
-      console.log("JobStore: Fetched", mappedJobs.length, "jobs");
+      console.log(
+        "JobStore: Fetched",
+        mappedJobs.length,
+        "jobs",
+        isSearchActive ? "(filtered)" : ""
+      );
     } catch (err: any) {
       console.error("JobStore: Error fetching jobs:", err);
       set({ jobs: [], loading: false, error: err.message, hasMore: false });
@@ -184,9 +316,9 @@ export const useJobStore = create<JobsState>((set, get) => ({
 
   fetchMoreJobs: async (user: User, profile: UserProfile) => {
     const currentState = get();
-    const fetchKey = createFetchKey(user, profile);
+    const fetchKey = createFetchKey(user, profile, currentState.searchTerm);
 
-    // Don't fetch if already loading, no more data, or different user/profile
+    // Don't fetch if already loading, no more data, or different user/profile/search
     if (
       currentState.loadingMore ||
       !currentState.hasMore ||
@@ -195,17 +327,29 @@ export const useJobStore = create<JobsState>((set, get) => ({
       return;
     }
 
-    console.log("JobStore: Fetching more jobs, page", currentState.page);
+    const isSearchActive =
+      currentState.searchTerm && currentState.searchTerm.length >= 2;
+    console.log(
+      "JobStore: Fetching more jobs, page",
+      currentState.page,
+      isSearchActive ? `(search: "${currentState.searchTerm}")` : ""
+    );
 
     try {
       set({ loadingMore: true, error: null });
 
-      const query = buildJobQuery(user, profile, currentState.page, PAGE_SIZE);
+      const query = buildJobQuery(
+        user,
+        profile,
+        currentState.page,
+        PAGE_SIZE,
+        currentState.searchTerm
+      );
       const { data, error } = await query;
 
       if (error) throw error;
 
-      const mappedJobs = (data ?? []).map((job: any) => ({
+      let mappedJobs = (data ?? []).map((job: any) => ({
         id: job.id,
         title: job.title,
         description: job.description,
@@ -213,7 +357,9 @@ export const useJobStore = create<JobsState>((set, get) => ({
         status: job.status,
         company: job.company,
         category: job.category,
-        skills: (job.skills || []).map((s: any) => s.skill),
+        skills: Array.isArray(job.skills)
+          ? job.skills.flatMap((s: any) => s.skill ?? [])
+          : [], // ← always an array
         applied:
           user.role.name === "candidate"
             ? job.job_applications?.some(
@@ -222,6 +368,25 @@ export const useJobStore = create<JobsState>((set, get) => ({
             : false,
         nb_candidates: job.job_applications?.length || 0,
       }));
+
+      // Apply client-side relevance sorting for search results
+      if (isSearchActive) {
+        mappedJobs = sortJobsByRelevance(
+          mappedJobs,
+          currentState.searchTerm
+        ) as {
+          id: any;
+          title: any;
+          description: any;
+          created_at: any;
+          status: any;
+          company: any;
+          category: any;
+          skills: any;
+          applied: any;
+          nb_candidates: any;
+        }[];
+      }
 
       set({
         jobs: [
@@ -238,7 +403,12 @@ export const useJobStore = create<JobsState>((set, get) => ({
         hasMore: mappedJobs.length === PAGE_SIZE,
       });
 
-      console.log("JobStore: Fetched", mappedJobs.length, "more jobs");
+      console.log(
+        "JobStore: Fetched",
+        mappedJobs.length,
+        "more jobs",
+        isSearchActive ? "(filtered)" : ""
+      );
     } catch (err: any) {
       console.error("JobStore: Error fetching more jobs:", err);
       set({ loadingMore: false, error: err.message });
@@ -255,6 +425,8 @@ export const useJobStore = create<JobsState>((set, get) => ({
       hasMore: true,
       lastFetchKey: null,
       error: null,
+      searchTerm: "",
+      isSearching: false,
     });
   },
 }));

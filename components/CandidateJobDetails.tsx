@@ -30,7 +30,7 @@ interface ToastProps {
 }
 
 // Reusable Toast Component
-const Toast: React.FC<ToastProps> = ({ message, type, visible, onHide }) => {
+export const Toast: React.FC<ToastProps> = ({ message, type, visible, onHide }) => {
   useEffect(() => {
     if (visible) {
       const timer = setTimeout(() => {

@@ -7,7 +7,15 @@ import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIc
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useNavigation } from "expo-router";
 import React, { useLayoutEffect, useState } from "react";
-import { FlatList, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Avatar, Surface } from "react-native-paper";
 
 interface MenuItem {
@@ -36,34 +44,18 @@ export default function Profile() {
       },
       headerTintColor: "#fff",
       headerTitle: () => (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: "#374151",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ color: "#9ca3af", fontSize: 14, fontWeight: "600" }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-            </Text>
-          </View>
-          <Text
-            numberOfLines={1}
-            style={{
-              color: "#fff",
-              fontSize: 20,
-              fontWeight: "600",
-              marginLeft: 10,
-              maxWidth: 220,
-            }}
-          >
-            Profile
-          </Text>
-        </View>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: "#fff",
+            fontSize: 20,
+            fontWeight: "600",
+            marginLeft: 10,
+            maxWidth: 220,
+          }}
+        >
+          Profile
+        </Text>
       ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +67,7 @@ export default function Profile() {
       title: "View/Edit Profile",
       icon: "account-edit",
       type: "screen",
-      action: () => router.push('/profile/ViewEditProfile'),
+      action: () => router.push("/profile/ViewEditProfile"),
     },
     {
       id: "account",
@@ -179,11 +171,14 @@ export default function Profile() {
   }
 
   return (
-    <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.container}>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <SafeAreaView style={styles.container}>
         {/* Profile Header -- reduced visual (no duplicate nav header) */}
-        <Surface style={[styles.profileHeader, { marginTop: 12 }]} elevation={3}>
+        <Surface
+          style={[styles.profileHeader, { marginTop: 12 }]}
+          elevation={3}
+        >
           <View style={styles.profileContent}>
             <Avatar.Text
               size={64} // slightly smaller because navigator header carries main identity

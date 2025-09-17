@@ -19,7 +19,7 @@ interface NotificationsState {
   // General send (enforce allowed types). jobId optional (for dedupe).
   sendNotification: (
     targetUserId: number,
-    type: "virgin" | "viewed",
+    type: "virgin" | "viewed" | "accepted" | "rejected",
     content: string,
     jobId?: number
   ) => Promise<void>;
