@@ -12,29 +12,28 @@ import { Tabs } from "expo-router";
 import { AnimatePresence, MotiView } from "moti";
 import React, { useEffect } from "react";
 import { Platform, StyleSheet, View } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
 import { Text } from "react-native-paper";
 
 export default function TabLayout() {
   const { user } = useAuth();
   const fetchMeta = useMetaStore((s) => s.fetchMeta);
-  
+
   // Notifications
   const { fetchNotifications, subscribeToRealtime } = useNotificationsStore();
   const unreadNotifications = useNotificationsStore(
     (s) => s.notifications.filter((n) => !n.read_at).length
   );
-  
+
   // Chat - unified store
-  const { 
-    fetchConversations, 
+  const {
+    fetchConversations,
     subscribeToRealtime: subscribeToChatRealtime,
     getTotalUnreadMessages,
     setCurrentUser,
     reset: resetChat,
-    unsubscribeRealtime: unsubscribeChatRealtime
+    unsubscribeRealtime: unsubscribeChatRealtime,
   } = useChatStore();
-  
+
   const unreadMessages = user ? getTotalUnreadMessages(user.id) : 0;
 
   useEffect(() => {
@@ -42,11 +41,11 @@ export default function TabLayout() {
 
     // Set current user in chat store
     setCurrentUser({ id: user.id, name: user.name });
-    
+
     // Initialize notifications
     fetchNotifications(user.id);
     subscribeToRealtime(user.id);
-    
+
     // Initialize chat
     fetchConversations({ id: user.id, name: user.name });
     subscribeToChatRealtime(user.id);
@@ -62,20 +61,6 @@ export default function TabLayout() {
   }, []);
 
   const colorScheme = useColorScheme();
-
-  const AddJobBtn = () => (
-    <Pressable
-      onPress={() => alert("Add Job clicked")}
-      style={{
-        marginRight: 12,
-        backgroundColor: "#000",
-        borderRadius: 50,
-        padding: 8,
-      }}
-    >
-      <MaterialCommunityIcons name="plus" size={26} color={"#0f0"} />
-    </Pressable>
-  );
 
   const Badge = ({ count }: { count: number }) => (
     <AnimatePresence>
@@ -118,7 +103,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
-          headerRight: () => user?.role.name === "recruiter" && <AddJobBtn />,
         }}
       />
       <Tabs.Screen
@@ -128,12 +112,30 @@ export default function TabLayout() {
           headerShown: true,
           tabBarIcon: ({ color, size }) => (
             <View>
-              <MaterialCommunityIcons name="message" size={size} color={color} />
+              <MaterialCommunityIcons
+                name="message"
+                size={size}
+                color={color}
+              />
               <Badge count={unreadMessages} />
             </View>
           ),
         }}
       />
+      {user?.role.name == "recruiter" && (
+        <Tabs.Screen
+          name="AddJob"
+          options={{
+            title: "Add Job",
+            headerShown: true,
+            tabBarIcon: ({ color, size }) => (
+              <View>
+                <MaterialCommunityIcons name="plus-circle" size={size} color={color} />
+              </View>
+            ),
+          }}
+        />
+      )}
       <Tabs.Screen
         name="Notifications"
         options={{

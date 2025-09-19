@@ -2,6 +2,7 @@ import { useAuth } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import dayjs from "dayjs";
+import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -104,11 +105,12 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
   const hasMoreMessages = messagesHasMore[conversationId] || false;
 
   // Extract other user info from first message for header
-  const otherUser = messages.length > 0 
-    ? (messages[0]?.sender.id === user?.id 
-        ? messages[0]?.receiver 
-        : messages[0]?.sender)
-    : null;
+  const otherUser =
+    messages.length > 0
+      ? messages[0]?.sender.id === user?.id
+        ? messages[0]?.receiver
+        : messages[0]?.sender
+      : null;
 
   // Parse conversation ID to get other user ID for sending messages
   const [otherUserId, setOtherUserId] = useState<number | null>(null);
@@ -136,7 +138,8 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
   }, [user, fetchMessages, conversationId]);
 
   const handleSend = async () => {
-    if (!messageText.trim() || !user?.id || !otherUserId || sendingMessage) return;
+    if (!messageText.trim() || !user?.id || !otherUserId || sendingMessage)
+      return;
 
     const text = messageText.trim();
     setMessageText("");
@@ -180,95 +183,95 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#111827" }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      
-
-      {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
-        }
-        renderItem={({ item, index }) => (
-          <MessageBubble
-            message={item}
-            isFromMe={item.sender_id === user?.id}
-            showTime={shouldShowTime(item, index)}
-          />
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        style={{ flex: 1, paddingVertical: 8 }}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        onEndReached={loadMoreMessages}
-        onEndReachedThreshold={0.1}
-        inverted={false}
-        ListHeaderComponent={
-          hasMoreMessages && isLoading ? (
-            <View style={{ paddingVertical: 16, alignItems: "center" }}>
-              <ActivityIndicator size="small" color="#2563eb" />
-            </View>
-          ) : null
-        }
-      />
-
-      {/* Input */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 16,
-          backgroundColor: "#1f2937",
-          borderTopWidth: 1,
-          borderTopColor: "#374151",
-        }}
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: "#111827" }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <TextInput
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Type a message..."
-          placeholderTextColor="#9ca3af"
-          style={{
-            flex: 1,
-            backgroundColor: "#374151",
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            color: "#fff",
-            fontSize: 16,
-            marginRight: 8,
-          }}
-          multiline
-          maxLength={500}
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={!messageText.trim() || sendingMessage}
-          style={{
-            backgroundColor: messageText.trim() ? "#2563eb" : "#374151",
-            borderRadius: 20,
-            padding: 12,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {sendingMessage ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <MaterialCommunityIcons
-              name="send"
-              size={20}
-              color={messageText.trim() ? "#fff" : "#9ca3af"}
+        {/* Messages */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+          }
+          renderItem={({ item, index }) => (
+            <MessageBubble
+              message={item}
+              isFromMe={item.sender_id === user?.id}
+              showTime={shouldShowTime(item, index)}
             />
           )}
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+          keyExtractor={(item) => item.id.toString()}
+          style={{ flex: 1, paddingVertical: 8 }}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          onEndReached={loadMoreMessages}
+          onEndReachedThreshold={0.1}
+          inverted={false}
+          ListHeaderComponent={
+            hasMoreMessages && isLoading ? (
+              <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                <ActivityIndicator size="small" color="#2563eb" />
+              </View>
+            ) : null
+          }
+        />
+
+        {/* Input */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            padding: 16,
+            backgroundColor: "#1f2937",
+            borderTopWidth: 1,
+            borderTopColor: "#374151",
+          }}
+        >
+          <TextInput
+            value={messageText}
+            onChangeText={setMessageText}
+            placeholder="Type a message..."
+            placeholderTextColor="#9ca3af"
+            style={{
+              flex: 1,
+              backgroundColor: "#374151",
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              color: "#fff",
+              fontSize: 16,
+              marginRight: 8,
+            }}
+            multiline
+            maxLength={500}
+          />
+          <Pressable
+            onPress={handleSend}
+            disabled={!messageText.trim() || sendingMessage}
+            style={{
+              backgroundColor: messageText.trim() ? "#2563eb" : "#374151",
+              borderRadius: 20,
+              padding: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {sendingMessage ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <MaterialCommunityIcons
+                name="send"
+                size={20}
+                color={messageText.trim() ? "#fff" : "#9ca3af"}
+              />
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }

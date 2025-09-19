@@ -6,10 +6,18 @@ import { MetaOption } from "@/types/entities";
 import { AntDesign } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "expo-router";
 import { MotiView } from "moti";
 import React, { useCallback, useLayoutEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 
 dayjs.extend(relativeTime);
 
@@ -80,7 +88,7 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
           >
             {otherUser?.name || "Unknown User"}
           </Text>
-          
+
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             {isFromMe && (
               <AntDesign
@@ -132,7 +140,9 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
                   fontWeight: "bold",
                 }}
               >
-                {conversation.unread_count > 99 ? "99+" : conversation.unread_count}
+                {conversation.unread_count > 99
+                  ? "99+"
+                  : conversation.unread_count}
               </Text>
             </View>
           )}
@@ -146,7 +156,9 @@ export default function Messages() {
   const { user } = useAuth();
   const navigation = useNavigation();
   const [currentView, setCurrentView] = useState<"list" | "chat">("list");
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
 
   const {
     conversations,
@@ -188,8 +200,12 @@ export default function Messages() {
                 justifyContent: "center",
               }}
             >
-              <Text style={{ color: "#9ca3af", fontSize: 14, fontWeight: "600" }}>
-                {currentOtherUser?.name ? currentOtherUser.name.charAt(0).toUpperCase() : "U"}
+              <Text
+                style={{ color: "#9ca3af", fontSize: 14, fontWeight: "600" }}
+              >
+                {currentOtherUser?.name
+                  ? currentOtherUser.name.charAt(0).toUpperCase()
+                  : "U"}
               </Text>
             </View>
             <Text
@@ -271,48 +287,50 @@ export default function Messages() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#111827" }}>
-      <FlatList
-        data={conversations}
-        refreshControl={
-          <RefreshControl
-            refreshing={conversationsLoading}
-            onRefresh={handleRefresh}
-          />
-        }
-        renderItem={({ item }) => (
-          <ConversationCard
-            conversation={item}
-            onPress={() => handleConversationPress(item.id)}
-          />
-        )}
-        keyExtractor={(item) => item.id}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.2}
-        ListFooterComponent={
-          conversationsLoading ? (
-            <View style={{ paddingVertical: 16 }}>
-              <ActivityIndicator size="small" color="#2563eb" />
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          !conversationsLoading ? (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-                paddingTop: 100,
-              }}
-            >
-              <Text style={{ color: "#9ca3af", fontSize: 16 }}>
-                No conversations yet
-              </Text>
-            </View>
-          ) : null
-        }
-      />
-    </View>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
+      <View style={{ flex: 1}}>
+        <FlatList
+          data={conversations}
+          refreshControl={
+            <RefreshControl
+              refreshing={conversationsLoading}
+              onRefresh={handleRefresh}
+            />
+          }
+          renderItem={({ item }) => (
+            <ConversationCard
+              conversation={item}
+              onPress={() => handleConversationPress(item.id)}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.2}
+          ListFooterComponent={
+            conversationsLoading ? (
+              <View style={{ paddingVertical: 16 }}>
+                <ActivityIndicator size="small" color="#2563eb" />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            !conversationsLoading ? (
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingTop: 100,
+                }}
+              >
+                <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+                  No conversations yet
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      </View>
+    </LinearGradient>
   );
 }

@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 2,
-    backgroundColor: "#1e1e2e", // Move bg color here to cover clipped shadow
+    backgroundColor: "#252f51", // Move bg color here to cover clipped shadow
     overflow: "hidden", // overflow hidden here, not in card
   },
   cardClosedWrapper: {},

@@ -2,8 +2,15 @@ import NotificationCard from "@/components/ui/NotificationCard";
 import { useAuth } from "@/store/authStore";
 import { useNotificationsStore } from "@/store/useNotificationStore";
 import { format, isToday, isYesterday } from "date-fns";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 
 // Group notifications by date
 const groupNotificationsByDate = (notifications: any[]) => {
@@ -90,41 +97,45 @@ export default function NotificationsScreen() {
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   return (
-    <View style={{ flex: 1 }}>
-      <FlatList
-        data={groupedData}
-        renderItem={renderSection}
-        keyExtractor={(item) => item.title}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.2}
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={{ paddingVertical: 16 }}>
-              <ActivityIndicator size="small" color="#2563eb" />
-            </View>
-          ) : null
-        }
-      />
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{flex: 1}}>
+      <View style={{ flex: 1 }}>
+        <FlatList
+          data={groupedData}
+          renderItem={renderSection}
+          keyExtractor={(item) => item.title}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.2}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 16 }}>
+                <ActivityIndicator size="small" color="#2563eb" />
+              </View>
+            ) : null
+          }
+        />
 
-      {unreadCount > 0 && (
-        <Pressable
-          onPress={() =>{if (user) markAllAsRead(user.id)}}
-          style={{
-            position: "absolute",
-            bottom: 20,
-            left: 20,
-            right: 20,
-            backgroundColor: "#2563eb",
-            paddingVertical: 12,
-            borderRadius: 8,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "600" }}>
-            Mark all as read ({unreadCount})
-          </Text>
-        </Pressable>
-      )}
-    </View>
+        {unreadCount > 0 && (
+          <Pressable
+            onPress={() => {
+              if (user) markAllAsRead(user.id);
+            }}
+            style={{
+              position: "absolute",
+              bottom: 20,
+              left: 20,
+              right: 20,
+              backgroundColor: "#2563eb",
+              paddingVertical: 12,
+              borderRadius: 8,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>
+              Mark all as read ({unreadCount})
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    </LinearGradient>
   );
 }

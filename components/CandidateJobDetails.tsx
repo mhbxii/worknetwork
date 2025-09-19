@@ -1,9 +1,11 @@
+import { Toast } from "@/components/ui/Toast";
 import { useAIMatching } from "@/hooks/useAIMatching";
 import { supabase } from "@/lib/supabase";
 import { createMatchingPrompt } from "@/services/createMatchingPrompt"; // or wherever you put it
 import { useAuth } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
 import { useJobStore } from "@/store/useJobStore";
+import { useNotificationsStore } from "@/store/useNotificationStore";
 import { FetchedRecruiter, Job } from "@/types/entities";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -22,46 +24,10 @@ interface CandidateJobDetailsProps {
   job: Job;
 }
 
-interface ToastProps {
-  message: string;
-  type: "success" | "error";
-  visible: boolean;
-  onHide: () => void;
-}
-
-// Reusable Toast Component
-export const Toast: React.FC<ToastProps> = ({ message, type, visible, onHide }) => {
-  useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => {
-        onHide();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [visible, onHide]);
-
-  if (!visible) return null;
-
-  return (
-    <View
-      style={[
-        styles.toast,
-        type === "success" ? styles.toastSuccess : styles.toastError,
-      ]}
-    >
-      <MaterialCommunityIcons
-        name={type === "success" ? "check-circle" : "alert-circle"}
-        size={16}
-        color="#fff"
-      />
-      <Text style={styles.toastText}>{message}</Text>
-    </View>
-  );
-};
-
 export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
   job,
 }) => {
+  const { sendNotification } = useNotificationsStore.getState();
   const { profile, user, setProfile } = useAuth();
   const { updateJobApplication } = useJobStore();
   const { sendMessage } = useChatStore();
@@ -186,6 +152,37 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
     setMessageText("");
   };
 
+  const sendApplicationNotifications = async (jobTitle: string, companyId: number) => {
+    try {
+      // Fetch recruiters for this company
+      const { data: recruiters, error } = await supabase
+        .from("hrs")
+        .select("user_id")
+        .eq("company_id", companyId);
+  
+      if (error || !recruiters) {
+        console.error("Error fetching recruiters for notifications:", error);
+        return;
+      }
+  
+      // Send notification to each recruiter
+      
+      const notifications = recruiters.map(recruiter => 
+        sendNotification(
+          recruiter.user_id,
+          "virgin",
+          `New application received for ${jobTitle}`,
+          job.id
+        )
+      );
+  
+      await Promise.all(notifications);
+      console.log(`Sent application notifications to ${recruiters.length} recruiters`);
+    } catch (err) {
+      console.error("Failed to send application notifications:", err);
+    }
+  };
+
   const handleJobApplication = async () => {
     if (nbProposals <= 0) {
       console.log("You've hit your limits! You cant apply for this job now.");
@@ -220,6 +217,9 @@ export const CandidateJobDetails: React.FC<CandidateJobDetailsProps> = ({
         // Notify user of successful application
         console.log("Application submitted successfully!");
         alert("Application submitted successfully!");
+
+        // Send notifications to recruiters
+        sendApplicationNotifications(job.title, job.company.id);
 
         // Update local profile state
         if (profile && "nb_proposals" in profile) {
