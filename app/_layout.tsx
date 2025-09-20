@@ -18,7 +18,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments();
-  const { profile, initialized } = useAuth(); // ✅ use initialized from store
+  const { user, profile, initialized } = useAuth(); // ✅ use initialized from store
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -29,17 +29,22 @@ export default function RootLayout() {
   }, []);
 
   // 🔹 Redirect logic
-  useEffect(() => {
-    if (!initialized || !segments.length) return;
-
-    const isAuthRoute = segments[0] === '(auth)';
-
-    if (!profile && !isAuthRoute) {
-      router.replace('/OnboardingFlow');
-    } else if (profile && isAuthRoute) {
-      router.replace('/(main)');
-    }
-  }, [profile, initialized, segments]);
+useEffect(() => {
+  if (!initialized || !segments.length) return;
+  
+  const isAuthRoute = segments[0] === '(auth)';
+  
+  if (!user && !isAuthRoute) {
+    // No user at all -> go to auth
+    router.replace('/OnboardingFlow');
+  } else if (user && !profile && user.role?.name !== 'admin' && !isAuthRoute) {
+    // User exists but no profile (and not admin) -> go to onboarding
+    router.replace('/OnboardingFlow');
+  } else if (user && (profile || user.role?.name === 'admin') && isAuthRoute) {
+    // User exists with profile OR is admin -> go to main app
+    router.replace('/(main)');
+  }
+}, [profile, initialized, segments]);
 
   if (!loaded || !initialized) {
     return (

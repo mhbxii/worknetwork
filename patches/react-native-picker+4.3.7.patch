@@ -1,0 +1,559 @@
+diff --git a/node_modules/react-native-picker/android/build.gradle b/node_modules/react-native-picker/android/build.gradle
+index 40f4f26..e98cee4 100644
+--- a/node_modules/react-native-picker/android/build.gradle
++++ b/node_modules/react-native-picker/android/build.gradle
+@@ -1,18 +1,18 @@
+ apply plugin: 'com.android.library'
+ 
+ android {
+-    compileSdkVersion 27
+-    buildToolsVersion "23.0.1"
++    compileSdkVersion 35
++    buildToolsVersion "35.0.0"
+ 
+     defaultConfig {
+-        minSdkVersion 16
+-        targetSdkVersion 27
++        minSdkVersion 24
++        targetSdkVersion 35
+         versionCode 1
+         versionName "1.0"
+ 
+-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+-
++        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+     }
++
+     buildTypes {
+         release {
+             minifyEnabled false
+@@ -22,6 +22,6 @@ android {
+ }
+ 
+ dependencies {
+-    compile fileTree(include: ['*.jar'], dir: 'libs')
+-    compile 'com.facebook.react:react-native:+'
++    implementation fileTree(include: ['*.jar'], dir: 'libs')
++    implementation 'com.facebook.react:react-native:+'
+ }
+diff --git a/node_modules/react-native-picker/android/build.gradle.bak b/node_modules/react-native-picker/android/build.gradle.bak
+new file mode 100644
+index 0000000..40f4f26
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build.gradle.bak
+@@ -0,0 +1,27 @@
++apply plugin: 'com.android.library'
++
++android {
++    compileSdkVersion 27
++    buildToolsVersion "23.0.1"
++
++    defaultConfig {
++        minSdkVersion 16
++        targetSdkVersion 27
++        versionCode 1
++        versionName "1.0"
++
++        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
++
++    }
++    buildTypes {
++        release {
++            minifyEnabled false
++            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++        }
++    }
++}
++
++dependencies {
++    compile fileTree(include: ['*.jar'], dir: 'libs')
++    compile 'com.facebook.react:react-native:+'
++}
+diff --git a/node_modules/react-native-picker/android/build/generated/source/buildConfig/release/com/beefe/picker/BuildConfig.java b/node_modules/react-native-picker/android/build/generated/source/buildConfig/release/com/beefe/picker/BuildConfig.java
+new file mode 100644
+index 0000000..9543376
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/generated/source/buildConfig/release/com/beefe/picker/BuildConfig.java
+@@ -0,0 +1,10 @@
++/**
++ * Automatically generated file. DO NOT MODIFY
++ */
++package com.beefe.picker;
++
++public final class BuildConfig {
++  public static final boolean DEBUG = false;
++  public static final String LIBRARY_PACKAGE_NAME = "com.beefe.picker";
++  public static final String BUILD_TYPE = "release";
++}
+diff --git a/node_modules/react-native-picker/android/build/intermediates/aapt_friendly_merged_manifests/release/processReleaseManifest/aapt/AndroidManifest.xml b/node_modules/react-native-picker/android/build/intermediates/aapt_friendly_merged_manifests/release/processReleaseManifest/aapt/AndroidManifest.xml
+new file mode 100644
+index 0000000..0390654
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/aapt_friendly_merged_manifests/release/processReleaseManifest/aapt/AndroidManifest.xml
+@@ -0,0 +1,9 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.beefe.picker" >
++
++    <uses-sdk android:minSdkVersion="24" />
++
++    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
++
++</manifest>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/aapt_friendly_merged_manifests/release/processReleaseManifest/aapt/output-metadata.json b/node_modules/react-native-picker/android/build/intermediates/aapt_friendly_merged_manifests/release/processReleaseManifest/aapt/output-metadata.json
+new file mode 100644
+index 0000000..a9e616d
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/aapt_friendly_merged_manifests/release/processReleaseManifest/aapt/output-metadata.json
+@@ -0,0 +1,18 @@
++{
++  "version": 3,
++  "artifactType": {
++    "type": "AAPT_FRIENDLY_MERGED_MANIFESTS",
++    "kind": "Directory"
++  },
++  "applicationId": "com.beefe.picker",
++  "variantName": "release",
++  "elements": [
++    {
++      "type": "SINGLE",
++      "filters": [],
++      "attributes": [],
++      "outputFile": "AndroidManifest.xml"
++    }
++  ],
++  "elementType": "File"
++}
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/aar_metadata/release/writeReleaseAarMetadata/aar-metadata.properties b/node_modules/react-native-picker/android/build/intermediates/aar_metadata/release/writeReleaseAarMetadata/aar-metadata.properties
+new file mode 100644
+index 0000000..1211b1e
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/aar_metadata/release/writeReleaseAarMetadata/aar-metadata.properties
+@@ -0,0 +1,6 @@
++aarFormatVersion=1.0
++aarMetadataVersion=1.0
++minCompileSdk=1
++minCompileSdkExtension=0
++minAndroidGradlePluginVersion=1.0.0
++coreLibraryDesugaringEnabled=false
+diff --git a/node_modules/react-native-picker/android/build/intermediates/annotation_processor_list/release/javaPreCompileRelease/annotationProcessors.json b/node_modules/react-native-picker/android/build/intermediates/annotation_processor_list/release/javaPreCompileRelease/annotationProcessors.json
+new file mode 100644
+index 0000000..9e26dfe
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/annotation_processor_list/release/javaPreCompileRelease/annotationProcessors.json
+@@ -0,0 +1 @@
++{}
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar b/node_modules/react-native-picker/android/build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar
+new file mode 100644
+index 0000000..30e134e
+Binary files /dev/null and b/node_modules/react-native-picker/android/build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar differ
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compile_symbol_list/release/generateReleaseRFile/R.txt b/node_modules/react-native-picker/android/build/intermediates/compile_symbol_list/release/generateReleaseRFile/R.txt
+new file mode 100644
+index 0000000..b765741
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/compile_symbol_list/release/generateReleaseRFile/R.txt
+@@ -0,0 +1,19 @@
++int anim picker_enter 0x0
++int anim picker_exit 0x0
++int id barLayout 0x0
++int id cancel 0x0
++int id confirm 0x0
++int id loopViewOne 0x0
++int id loopViewThree 0x0
++int id loopViewTwo 0x0
++int id pickerLayout 0x0
++int id pickerViewAlone 0x0
++int id pickerViewAloneLayout 0x0
++int id pickerViewLinkage 0x0
++int id title 0x0
++int layout picker_view 0x0
++int layout picker_view_alone 0x0
++int layout picker_view_linkage 0x0
++int string app_name 0x0
++int style Dialog_Full_Screen 0x0
++int style PickerAnim 0x0
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/anim_picker_enter.xml.flat b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/anim_picker_enter.xml.flat
+new file mode 100644
+index 0000000..0d36f21
+Binary files /dev/null and b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/anim_picker_enter.xml.flat differ
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/anim_picker_exit.xml.flat b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/anim_picker_exit.xml.flat
+new file mode 100644
+index 0000000..1856207
+Binary files /dev/null and b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/anim_picker_exit.xml.flat differ
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view.xml.flat b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view.xml.flat
+new file mode 100644
+index 0000000..b2021d8
+Binary files /dev/null and b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view.xml.flat differ
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view_alone.xml.flat b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view_alone.xml.flat
+new file mode 100644
+index 0000000..bc8d2ae
+Binary files /dev/null and b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view_alone.xml.flat differ
+diff --git a/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view_linkage.xml.flat b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view_linkage.xml.flat
+new file mode 100644
+index 0000000..77ba003
+Binary files /dev/null and b/node_modules/react-native-picker/android/build/intermediates/compiled_local_resources/release/compileReleaseLibraryResources/out/layout_picker_view_linkage.xml.flat differ
+diff --git a/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties b/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties
+new file mode 100644
+index 0000000..39c42cc
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties
+@@ -0,0 +1,6 @@
++#Sat Sep 20 13:02:07 GMT+01:00 2025
++com.beefe.picker.react-native-picker-main-5\:/layout/picker_view_linkage.xml=D\:\\Mobile\\worknetwork\\worknetwork\\node_modules\\react-native-picker\\android\\build\\intermediates\\packaged_res\\release\\packageReleaseResources\\layout\\picker_view_linkage.xml
++com.beefe.picker.react-native-picker-main-5\:/anim/picker_exit.xml=D\:\\Mobile\\worknetwork\\worknetwork\\node_modules\\react-native-picker\\android\\build\\intermediates\\packaged_res\\release\\packageReleaseResources\\anim\\picker_exit.xml
++com.beefe.picker.react-native-picker-main-5\:/anim/picker_enter.xml=D\:\\Mobile\\worknetwork\\worknetwork\\node_modules\\react-native-picker\\android\\build\\intermediates\\packaged_res\\release\\packageReleaseResources\\anim\\picker_enter.xml
++com.beefe.picker.react-native-picker-main-5\:/layout/picker_view.xml=D\:\\Mobile\\worknetwork\\worknetwork\\node_modules\\react-native-picker\\android\\build\\intermediates\\packaged_res\\release\\packageReleaseResources\\layout\\picker_view.xml
++com.beefe.picker.react-native-picker-main-5\:/layout/picker_view_alone.xml=D\:\\Mobile\\worknetwork\\worknetwork\\node_modules\\react-native-picker\\android\\build\\intermediates\\packaged_res\\release\\packageReleaseResources\\layout\\picker_view_alone.xml
+diff --git a/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/merged.dir/values/values.xml b/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/merged.dir/values/values.xml
+new file mode 100644
+index 0000000..cc32009
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/merged.dir/values/values.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="app_name">react-native-picker</string>
++    <style name="Dialog_Full_Screen">
++        <item name="android:windowIsFloating">true</item>
++        <item name="android:windowFullscreen">true</item>
++        <item name="android:windowNoTitle">true</item>
++        <item name="android:windowContentOverlay">@null</item>
++        <item name="android:windowAnimationStyle">@style/PickerAnim</item>
++        <item name="android:background">@android:color/transparent</item>
++    </style>
++    <style name="PickerAnim">
++        <item name="android:windowEnterAnimation">@anim/picker_enter</item>
++        <item name="android:windowExitAnimation">@anim/picker_exit</item>
++    </style>
++</resources>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml b/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml
+new file mode 100644
+index 0000000..2029e83
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res"><file name="picker_enter" path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\anim\picker_enter.xml" qualifiers="" type="anim"/><file name="picker_exit" path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\anim\picker_exit.xml" qualifiers="" type="anim"/><file name="picker_view" path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\layout\picker_view.xml" qualifiers="" type="layout"/><file name="picker_view_alone" path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\layout\picker_view_alone.xml" qualifiers="" type="layout"/><file name="picker_view_linkage" path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\layout\picker_view_linkage.xml" qualifiers="" type="layout"/><file path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\values\strings.xml" qualifiers=""><string name="app_name">react-native-picker</string></file><file path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\res\values\styles.xml" qualifiers=""><style name="Dialog_Full_Screen">
++        <item name="android:windowIsFloating">true</item>
++        <item name="android:windowFullscreen">true</item>
++        <item name="android:windowNoTitle">true</item>
++        <item name="android:windowContentOverlay">@null</item>
++        <item name="android:windowAnimationStyle">@style/PickerAnim</item>
++        <item name="android:background">@android:color/transparent</item>
++    </style><style name="PickerAnim">
++        <item name="android:windowEnterAnimation">@anim/picker_enter</item>
++        <item name="android:windowExitAnimation">@anim/picker_exit</item>
++    </style></file></source></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="release$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\release\res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="release" generated-set="release$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\release\res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\build\generated\res\resValues\release"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\build\generated\res\resValues\release"/></dataSet><mergedItems/></merger>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/local_only_symbol_list/release/parseReleaseLocalResources/R-def.txt b/node_modules/react-native-picker/android/build/intermediates/local_only_symbol_list/release/parseReleaseLocalResources/R-def.txt
+new file mode 100644
+index 0000000..853e42d
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/local_only_symbol_list/release/parseReleaseLocalResources/R-def.txt
+@@ -0,0 +1,21 @@
++R_DEF: Internal format may change without notice
++local
++anim picker_enter
++anim picker_exit
++id barLayout
++id cancel
++id confirm
++id loopViewOne
++id loopViewThree
++id loopViewTwo
++id pickerLayout
++id pickerViewAlone
++id pickerViewAloneLayout
++id pickerViewLinkage
++id title
++layout picker_view
++layout picker_view_alone
++layout picker_view_linkage
++string app_name
++style Dialog_Full_Screen
++style PickerAnim
+diff --git a/node_modules/react-native-picker/android/build/intermediates/manifest_merge_blame_file/release/processReleaseManifest/manifest-merger-blame-release-report.txt b/node_modules/react-native-picker/android/build/intermediates/manifest_merge_blame_file/release/processReleaseManifest/manifest-merger-blame-release-report.txt
+new file mode 100644
+index 0000000..4f43057
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/manifest_merge_blame_file/release/processReleaseManifest/manifest-merger-blame-release-report.txt
+@@ -0,0 +1,11 @@
++1<?xml version="1.0" encoding="utf-8"?>
++2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++3    package="com.beefe.picker" >
++4
++5    <uses-sdk android:minSdkVersion="24" />
++6
++7    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
++7-->D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:2:7-79
++7-->D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:2:24-77
++8
++9</manifest>
+diff --git a/node_modules/react-native-picker/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml b/node_modules/react-native-picker/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml
+new file mode 100644
+index 0000000..0390654
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml
+@@ -0,0 +1,9 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.beefe.picker" >
++
++    <uses-sdk android:minSdkVersion="24" />
++
++    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
++
++</manifest>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/navigation_json/release/extractDeepLinksRelease/navigation.json b/node_modules/react-native-picker/android/build/intermediates/navigation_json/release/extractDeepLinksRelease/navigation.json
+new file mode 100644
+index 0000000..0637a08
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/navigation_json/release/extractDeepLinksRelease/navigation.json
+@@ -0,0 +1 @@
++[]
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/nested_resources_validation_report/release/generateReleaseResources/nestedResourcesValidationReport.txt b/node_modules/react-native-picker/android/build/intermediates/nested_resources_validation_report/release/generateReleaseResources/nestedResourcesValidationReport.txt
+new file mode 100644
+index 0000000..08f4ebe
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/nested_resources_validation_report/release/generateReleaseResources/nestedResourcesValidationReport.txt
+@@ -0,0 +1 @@
++0 Warning/Error
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/anim/picker_enter.xml b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/anim/picker_enter.xml
+new file mode 100644
+index 0000000..fad8d8f
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/anim/picker_enter.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<set xmlns:android="http://schemas.android.com/apk/res/android">
++
++    <translate
++        android:duration="300"
++        android:fromXDelta="0"
++        android:fromYDelta="100%"
++        android:toXDelta="0"
++        android:toYDelta="0" />
++</set>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/anim/picker_exit.xml b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/anim/picker_exit.xml
+new file mode 100644
+index 0000000..cdce798
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/anim/picker_exit.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<set xmlns:android="http://schemas.android.com/apk/res/android">
++
++    <translate
++        android:fromXDelta="0"
++        android:fromYDelta="0"
++        android:duration="300"
++        android:toXDelta="0"
++        android:toYDelta="100%" />
++
++</set>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view.xml b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view.xml
+new file mode 100644
+index 0000000..9886bdd
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view.xml
+@@ -0,0 +1,56 @@
++<?xml version="1.0" encoding="utf-8"?>
++<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content"
++    android:background="#00000000">
++
++
++    <RelativeLayout
++        android:id="@+id/barLayout"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:layout_above="@+id/pickerLayout">
++
++        <TextView
++            android:id="@+id/cancel"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_centerVertical="true"
++            android:padding="9dp" />
++
++        <TextView
++            android:id="@+id/title"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_centerInParent="true"
++            android:padding="9dp" />
++
++        <TextView
++            android:id="@+id/confirm"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_alignParentEnd="true"
++            android:layout_alignParentRight="true"
++            android:layout_centerVertical="true"
++            android:padding="9dp" />
++
++    </RelativeLayout>
++
++    <RelativeLayout
++        android:id="@+id/pickerLayout"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:layout_alignParentBottom="true" >
++
++        <com.beefe.picker.view.PickerViewLinkage
++            android:id="@+id/pickerViewLinkage"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"/>
++
++        <com.beefe.picker.view.PickerViewAlone
++            android:id="@+id/pickerViewAlone"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"/>
++    </RelativeLayout>
++
++</RelativeLayout>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view_alone.xml b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view_alone.xml
+new file mode 100644
+index 0000000..aae2303
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view_alone.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:orientation="horizontal" android:layout_width="match_parent"
++    android:id="@+id/pickerViewAloneLayout"
++    android:layout_height="match_parent">
++
++</LinearLayout>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view_linkage.xml b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view_linkage.xml
+new file mode 100644
+index 0000000..7c26d8b
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/layout/picker_view_linkage.xml
+@@ -0,0 +1,24 @@
++<?xml version="1.0" encoding="utf-8"?>
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:orientation="horizontal" android:layout_width="match_parent"
++    android:layout_height="match_parent">
++
++    <com.beefe.picker.view.LoopView
++        android:id="@+id/loopViewOne"
++        android:layout_width="0dp"
++        android:layout_weight="1.0"
++        android:layout_height="match_parent" />
++
++    <com.beefe.picker.view.LoopView
++        android:id="@+id/loopViewTwo"
++        android:layout_width="0dp"
++        android:layout_weight="1.0"
++        android:layout_height="match_parent" />
++
++    <com.beefe.picker.view.LoopView
++        android:id="@+id/loopViewThree"
++        android:layout_width="0dp"
++        android:layout_weight="1.0"
++        android:layout_height="match_parent" />
++
++</LinearLayout>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml
+new file mode 100644
+index 0000000..cc32009
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="app_name">react-native-picker</string>
++    <style name="Dialog_Full_Screen">
++        <item name="android:windowIsFloating">true</item>
++        <item name="android:windowFullscreen">true</item>
++        <item name="android:windowNoTitle">true</item>
++        <item name="android:windowContentOverlay">@null</item>
++        <item name="android:windowAnimationStyle">@style/PickerAnim</item>
++        <item name="android:background">@android:color/transparent</item>
++    </style>
++    <style name="PickerAnim">
++        <item name="android:windowEnterAnimation">@anim/picker_enter</item>
++        <item name="android:windowExitAnimation">@anim/picker_exit</item>
++    </style>
++</resources>
+\ No newline at end of file
+diff --git a/node_modules/react-native-picker/android/build/intermediates/symbol_list_with_package_name/release/generateReleaseRFile/package-aware-r.txt b/node_modules/react-native-picker/android/build/intermediates/symbol_list_with_package_name/release/generateReleaseRFile/package-aware-r.txt
+new file mode 100644
+index 0000000..e2ed8b5
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/intermediates/symbol_list_with_package_name/release/generateReleaseRFile/package-aware-r.txt
+@@ -0,0 +1,20 @@
++com.beefe.picker
++anim picker_enter
++anim picker_exit
++id barLayout
++id cancel
++id confirm
++id loopViewOne
++id loopViewThree
++id loopViewTwo
++id pickerLayout
++id pickerViewAlone
++id pickerViewAloneLayout
++id pickerViewLinkage
++id title
++layout picker_view
++layout picker_view_alone
++layout picker_view_linkage
++string app_name
++style Dialog_Full_Screen
++style PickerAnim
+diff --git a/node_modules/react-native-picker/android/build/outputs/logs/manifest-merger-release-report.txt b/node_modules/react-native-picker/android/build/outputs/logs/manifest-merger-release-report.txt
+new file mode 100644
+index 0000000..8d4cec1
+--- /dev/null
++++ b/node_modules/react-native-picker/android/build/outputs/logs/manifest-merger-release-report.txt
+@@ -0,0 +1,21 @@
++-- Merging decision tree log ---
++manifest
++ADDED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:1:1-3:12
++INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:1:1-3:12
++	package
++		ADDED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:1:70-96
++		INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml
++	xmlns:android
++		ADDED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:1:11-69
++uses-permission#android.permission.SYSTEM_ALERT_WINDOW
++ADDED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:2:7-79
++	android:name
++		ADDED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml:2:24-77
++uses-sdk
++INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml reason: use-sdk injection requested
++INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml
++INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml
++	android:targetSdkVersion
++		INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml
++	android:minSdkVersion
++		INJECTED from D:\Mobile\worknetwork\worknetwork\node_modules\react-native-picker\android\src\main\AndroidManifest.xml
+diff --git a/node_modules/react-native-picker/android/src/main/java/com/beefe/picker/PickerViewModule.java b/node_modules/react-native-picker/android/src/main/java/com/beefe/picker/PickerViewModule.java
+index 813a0bd..73ad137 100644
+--- a/node_modules/react-native-picker/android/src/main/java/com/beefe/picker/PickerViewModule.java
++++ b/node_modules/react-native-picker/android/src/main/java/com/beefe/picker/PickerViewModule.java
+@@ -6,7 +6,7 @@ import android.app.Dialog;
+ import android.graphics.Color;
+ import android.graphics.PixelFormat;
+ import android.graphics.Typeface;
+-import android.support.annotation.Nullable;
++import androidx.annotation.Nullable;
+ import android.text.TextUtils;
+ import android.view.Gravity;
+ import android.view.View;

@@ -61,6 +61,7 @@ export default function TabLayout() {
   }, []);
 
   const colorScheme = useColorScheme();
+  const isAdmin = user?.role.name === "admin";
 
   const Badge = ({ count }: { count: number }) => (
     <AnimatePresence>
@@ -82,6 +83,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName={isAdmin ? "admin/Statistics" : "index"}
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
@@ -95,9 +97,11 @@ export default function TabLayout() {
         }),
       }}
     >
+      {/* Regular user tabs */}
       <Tabs.Screen
         name="index"
         options={{
+          href: !isAdmin ? "/" : null,
           title: "Home",
           headerShown: false,
           tabBarIcon: ({ color }) => (
@@ -108,6 +112,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Messages"
         options={{
+          href: !isAdmin ? "/Messages" : null,
           title: "Messages",
           headerShown: true,
           tabBarIcon: ({ color, size }) => (
@@ -122,23 +127,23 @@ export default function TabLayout() {
           ),
         }}
       />
-      {user?.role.name == "recruiter" && (
-        <Tabs.Screen
-          name="AddJob"
-          options={{
-            title: "Add Job",
-            headerShown: true,
-            tabBarIcon: ({ color, size }) => (
-              <View>
-                <MaterialCommunityIcons name="plus-circle" size={size} color={color} />
-              </View>
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="AddJob"
+        options={{
+          href: user?.role.name === "recruiter" ? "/AddJob" : null,
+          title: "Add Job",
+          headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <MaterialCommunityIcons name="plus-circle" size={size} color={color} />
+            </View>
+          ),
+        }}
+      />
       <Tabs.Screen
         name="Notifications"
         options={{
+          href: !isAdmin ? "/Notifications" : null,
           title: "Notifications",
           headerShown: true,
           tabBarIcon: ({ color, size }) => (
@@ -152,10 +157,61 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Profile"
         options={{
+          href: !isAdmin ? "/Profile" : null,
           title: "Profile",
           headerShown: true,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account" size={size} color={color} />
+          ),
+        }}
+      />
+      
+      {/* Admin tabs */}
+      <Tabs.Screen
+        name="admin/Statistics"
+        options={{
+          href: isAdmin ? "/admin/Statistics" : null,
+          title: "Statistics",
+          headerShown: true,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="house.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin/Reports"
+        options={{
+          href: isAdmin ? "/admin/Reports" : null,
+          title: "Reports",
+          headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="flag" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin/Users"
+        options={{
+          href: isAdmin ? "/admin/Users" : null,
+          title: "Users",
+          headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="account-group"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin/System"
+        options={{
+          href: isAdmin ? "/admin/System" : null,
+          title: "System",
+          headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cog" size={size} color={color} />
           ),
         }}
       />

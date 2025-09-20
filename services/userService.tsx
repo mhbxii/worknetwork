@@ -62,6 +62,11 @@ export async function fetchUser() {
       return;
     }
 
+    if(userData.role?.name == "admin"){
+      setProfile(null);
+      return;
+    }
+
     // 2) Fetch role-specific profile
     const profile = await fetchUserProfile(userData);
     
