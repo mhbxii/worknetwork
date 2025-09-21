@@ -5,7 +5,6 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
-import { useMetaStore } from "@/store/useMetaStore";
 import { useNotificationsStore } from "@/store/useNotificationStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -16,7 +15,11 @@ import { Text } from "react-native-paper";
 
 export default function TabLayout() {
   const { user } = useAuth();
-  const fetchMeta = useMetaStore((s) => s.fetchMeta);
+
+  if(!user) {
+    // This should never happen due to the redirect logic in RootLayout
+    return null;
+  }
 
   // Notifications
   const { fetchNotifications, subscribeToRealtime } = useNotificationsStore();
@@ -56,12 +59,10 @@ export default function TabLayout() {
     };
   }, [user?.id]);
 
-  useEffect(() => {
-    fetchMeta(); // load once
-  }, []);
-
   const colorScheme = useColorScheme();
   const isAdmin = user?.role.name === "admin";
+
+  console.log("~~~~~~~~~~~~~ isAdmin: ", isAdmin, " ~~~~~~~~~~~~~");
 
   const Badge = ({ count }: { count: number }) => (
     <AnimatePresence>

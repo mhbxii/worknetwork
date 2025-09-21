@@ -1,20 +1,65 @@
+import SignOutModal from "@/components/ui/SignOutModal";
 import { SkeletonScreen } from "@/components/ui/skeletonScreen";
-import { useAuth } from "@/store/authStore";
-import { Button, Text } from "react-native-paper";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { SafeAreaView, StatusBar, StyleSheet, View } from "react-native";
+import { Button } from "react-native-paper";
 
 export default function System() {
-  const { signOut } = useAuth();
+  const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+
   return (
-    <>
-      <SkeletonScreen
-        title="System Settings"
-        icon="cog"
-        description="Platform configuration and system logs"
-      />
-      <Button mode="contained" onPress={signOut} style={{ marginTop: 20, backgroundColor: "#5ab25c" }}>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
+      <SafeAreaView style={styles.container}>
+        {/* Use a View wrapper instead of letting SkeletonScreen be flex: 1 */}
+        <View style={styles.skeletonWrapper}>
+          <SkeletonScreen
+            title="System Settings"
+            icon="cog"
+            description="Platform configuration and system logs"
+          />
+        </View>
         
-        <Text>Sign Out</Text>
-      </Button>
-    </>
+        {/* Button container */}
+        <View style={styles.buttonContainer}>
+          <Button
+            mode="contained-tonal"
+            icon="logout"
+            onPress={() => setSignOutModalVisible(true)}
+            style={styles.button}
+          >
+            Sign Out
+          </Button>
+        </View>
+
+        {/* Modal - same level as in Profile component */}
+        <SignOutModal
+          visible={signOutModalVisible}
+          onClose={() => setSignOutModalVisible(false)}
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  skeletonWrapper: {
+    flex: 1,
+  },
+  buttonContainer: {
+    position: "absolute",
+    bottom: 100,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    padding: 20,
+  },
+  button: {
+    width: "80%",
+    maxWidth: 300,
+  },
+});

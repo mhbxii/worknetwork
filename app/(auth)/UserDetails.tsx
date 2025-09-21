@@ -19,36 +19,20 @@ interface Props {
   onNext: () => void;
 }
 
-interface Country {
-  id: number;
-  name: string;
-  code: string;
-}
-
 export default function UserDetails({ form, setForm, onNext }: Props) {
-  const { countryOptions } = useMetaStore();
+  const { countryOptions, fetchMeta } = useMetaStore();
   const [search, setSearch] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
 
-  
+  React.useEffect(() => {
+    if (countryOptions.length === 0) {
+      fetchMeta();
+    }
+  }, []);
 
   const filtered = countryOptions.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
-  const selectedCountry = countryOptions.find((c) => c.id === form.country?.id);
-
-  // Dynamic segmented button colors
-  const roleTheme = (roleName: "candidate" | "recruiter") => ({
-    colors: {
-      secondaryContainer:
-        form.role.name === roleName
-          ? roleName === "candidate"
-            ? "#4CAF50" // green
-            : "#FF9800" // orange
-          : "#333", // unselected background
-      onSecondaryContainer: "#fff", // text color
-    },
-  });
+  //const selectedCountry = countryOptions.find((c) => c.id === form.country?.id);
 
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>

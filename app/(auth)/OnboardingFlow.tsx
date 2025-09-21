@@ -1,4 +1,7 @@
-import { signUpCandidate, signUpRecruiter } from "@/services/customSignUpService";
+import {
+  signUpCandidate,
+  signUpRecruiter,
+} from "@/services/customSignUpService";
 import { useAuth } from "@/store/authStore";
 import { OnboardingForm } from "@/types/entities";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +10,6 @@ import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { ProgressBar } from "react-native-paper";
 import AuthScreen from "./AuthScreen";
 import CompanyDetails from "./CompanyDetails";
 import CvParser from "./CvParser";
@@ -15,6 +17,11 @@ import EditCandidateProfile from "./EditCandidateProfile";
 import UserDetails from "./UserDetails";
 
 export default function OnboardingFlow() {
+  const normalizeProgress = (v: number) => {
+    if (!isFinite(v) || isNaN(v)) return 0;
+    return Math.min(1, Math.max(0, Number(v)));
+  };
+
   const router = useRouter();
   const { setUser, setProfile, setInitialized } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -25,23 +32,23 @@ export default function OnboardingFlow() {
     email: "",
     password: "",
     name: "",
-    role: { id: 1, name: "candidate" },// Default to candidate},
+    role: { id: 1, name: "candidate" }, // Default to candidate},
     country: null, // preload parsed CV here
-  
+
     job_title: "",
-    experiences: [],  // preload parsed CV here
-    projects: [],     // preload parsed CV here
+    experiences: [], // preload parsed CV here
+    projects: [], // preload parsed CV here
     skills: null,
     job_category: null,
-  
+
     company: null, // for recruiters
     position_title: "",
   });
 
-  const next = () =>{
-    if(steps.length <= step + 1) return; // Prevent going beyond last step
+  const next = () => {
+    if (steps.length <= step + 1) return; // Prevent going beyond last step
     setStep((s) => s + 1);
-  }
+  };
 
   const back = () => {
     if (step > 0) {
@@ -53,22 +60,21 @@ export default function OnboardingFlow() {
 
   const submit = async () => {
     try {
-      const result = form.role.name === "candidate"
-        ? await signUpCandidate(form)
-        : await signUpRecruiter(form);
-  
+      const result =
+        form.role.name === "candidate"
+          ? await signUpCandidate(form)
+          : await signUpRecruiter(form);
+
       setUser(result.user);
       setProfile(result.profile);
       setInitialized(true);
-  
+
       //router.replace("/(main)"); double redirect unneeded.
     } catch (err: any) {
       console.error("Signup failed:", err.message);
       alert("Signup Error: " + err.message);
     }
   };
-  
-  
 
   const steps = [
     <AuthScreen
@@ -92,7 +98,7 @@ export default function OnboardingFlow() {
         ]
       : [
           <CompanyDetails
-           //key="company"
+            //key="company"
             form={form}
             setForm={setForm}
             onNext={submit}
@@ -108,12 +114,33 @@ export default function OnboardingFlow() {
             <TouchableOpacity onPress={back}>
               <Ionicons name="arrow-back" size={28} color="#fff" />
             </TouchableOpacity>
-          
-            <ProgressBar
-              progress={(step + 1) / steps.length} // step is 0-based
-              color="#fff"
-              style={{ height: 10, borderRadius: 10, width: 150 }}
-            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                marginTop: 12,
+                alignItems: "center",
+              }}
+            >
+              {(form.role.name === "candidate"
+                ? ["Auth", "Details", "CV", "Profile"]
+                : ["Auth", "Details", "Company"]
+              ).map((label, index) => (
+                <View key={index} style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: step >= index ? "#fff" : "#666",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  ></View>
+                </View>
+              ))}
+            </View>
           </>
         )}
         <View style={{ width: 28 }} /> {/* Spacer */}

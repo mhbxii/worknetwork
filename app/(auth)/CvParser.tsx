@@ -6,13 +6,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MotiText } from "moti";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
 } from "react-native";
-import { Button, ProgressBar, Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 
 interface Props {
   form: OnboardingForm;
@@ -21,6 +21,11 @@ interface Props {
 }
 
 export default function CvParser({ form, setForm, onNext }: Props) {
+  const normalizeProgress = (v: number) => {
+    if (!isFinite(v) || isNaN(v)) return 0;
+    return Math.min(1, Math.max(0, Number(v)));
+  };
+
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
@@ -64,7 +69,17 @@ export default function CvParser({ form, setForm, onNext }: Props) {
         "https://pdf-parser-4-vercel-gvtu.vercel.app/api/parse_pdf"
       );
       parseXhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) setProgress((e.loaded / e.total) * 0.37);
+        if (!e.lengthComputable) return;
+        const safe = Number(
+          ((e.loaded / Math.max(1, e.total)) * 0.37).toFixed(4)
+        );
+        console.log(
+          "#####################################################Setting progress: ",
+          safe,
+          "normalized:",
+          normalizeProgress(safe)
+        );
+        setProgress(normalizeProgress(safe));
       };
 
       const parsedText: string = await new Promise((resolve, reject) => {
@@ -81,15 +96,16 @@ export default function CvParser({ form, setForm, onNext }: Props) {
       });
 
       // 2️⃣ Summarize via Gemini
-      setProgress(0.68);
-  
+      setProgress(0.7);
+      console.log("00000000000000000000000000000"); // Log first 500 chars
+
       // ✅ New clean call
       const updatedForm = await summarizeCVToForm(parsedText, form);
       setForm(updatedForm);
 
       setProgress(1);
       setSuccess(true);
-  
+
       setTimeout(() => {
         setSuccess(false);
         onNext();
@@ -100,7 +116,6 @@ export default function CvParser({ form, setForm, onNext }: Props) {
       setProgress(0);
     }
   };
-  
 
   // ⏭ Skip parsing
   const handleSkip = () => {
@@ -133,16 +148,74 @@ export default function CvParser({ form, setForm, onNext }: Props) {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#fff" />
-              <ProgressBar
-                progress={progress}
-                color="#4CAF50"
+
+              <View
                 style={{
+                  flexDirection: "row",
+                  gap: 12,
                   marginTop: 12,
-                  height: 6,
-                  borderRadius: 6,
-                  width: "80%",
+                  justifyContent: "center",
                 }}
-              />
+              >
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: progress > 0 ? "#4CAF50" : "#666",
+                    }}
+                  />
+                  <Text style={{ color: "#fff", fontSize: 10, marginTop: 4 }}>
+                    Upload
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 30,
+                    height: 2,
+                    backgroundColor: progress > 0.4 ? "#4CAF50" : "#666",
+                    alignSelf: "center",
+                    marginTop: -6,
+                  }}
+                />
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: progress > 0.4 ? "#4CAF50" : "#666",
+                    }}
+                  />
+                  <Text style={{ color: "#fff", fontSize: 10, marginTop: 4 }}>
+                    Process
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 30,
+                    height: 2,
+                    backgroundColor: progress >= 1 ? "#4CAF50" : "#666",
+                    alignSelf: "center",
+                    marginTop: -6,
+                  }}
+                />
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: progress >= 1 ? "#4CAF50" : "#666",
+                    }}
+                  />
+                  <Text style={{ color: "#fff", fontSize: 10, marginTop: 4 }}>
+                    Done
+                  </Text>
+                </View>
+              </View>
+
               <Text style={{ color: "#fff", marginTop: 8 }}>
                 Processing... {Math.round(progress * 100)}%
               </Text>
