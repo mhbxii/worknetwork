@@ -1,13 +1,12 @@
-import { OnboardingForm } from '@/types/entities';
-import { AntDesign } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import { MotiText } from 'moti';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
-import { signInWithEmail, signInWithGoogle } from '../../services/authService';
+import { OnboardingForm } from "@/types/entities";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { MotiText } from "moti";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Button, Text, TextInput } from "react-native-paper";
+import { signInWithEmail, signInWithGoogle } from "../../services/authService";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -19,8 +18,13 @@ interface Props {
   setIsSignUp: (isSignUp: boolean) => void;
 }
 
-export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignUp }: Props) {
-
+export default function AuthScreen({
+  form,
+  setForm,
+  onNext,
+  isSignUp,
+  setIsSignUp,
+}: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,15 +35,15 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
 
   const handleAuth = async () => {
     if (!form?.email || !form.password) {
-      setError('Please fill in all fields.');
+      setError("Please fill in all fields.");
       return;
     }
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError("Password must be at least 6 characters.");
       return;
     }
 
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
@@ -68,19 +72,19 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
   };
 
   return (
-    <LinearGradient colors={['#1a1a2e', '#16213e']} style={{ flex: 1 }}>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <View style={styles.card}>
           <MotiText
             from={{ opacity: 0, translateY: -20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600 }}
+            transition={{ type: "timing", duration: 600 }}
             style={styles.title}
           >
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+            {isSignUp ? "Create Account" : "Welcome Back"}
           </MotiText>
 
           <TextInput
@@ -110,10 +114,10 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
             onPress={handleAuth}
             style={styles.button}
           >
-            {isSignUp ? 'Sign Up' : 'Log In'}
+            {isSignUp ? "Sign Up" : "Log In"}
           </Button>
 
-          <Button
+          {/*<Button
             icon={() => <AntDesign name="google" size={20} color="#fff" />}
             mode="contained-tonal"
             onPress={handleGoogleAuth}
@@ -121,7 +125,7 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
             labelStyle={{ color: '#fff' }}
           >
             Continue with Google
-          </Button>
+          </Button> */}
 
           <Button
             mode="text"
@@ -129,7 +133,7 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
             style={styles.switchBtn}
           >
             {isSignUp
-              ? 'Already have an account? Sign In'
+              ? "Already have an account? Sign In"
               : "Don't have an account? Sign Up"}
           </Button>
         </View>
@@ -139,25 +143,30 @@ export default function AuthScreen({ form, setForm, onNext, isSignUp, setIsSignU
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
   card: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    width: "100%",
+    backgroundColor: "rgba(255,255,255,0.05)",
     padding: 20,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 10,
   },
   title: {
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
     fontSize: 28,
   },
-  input: { marginBottom: 12, backgroundColor: 'rgba(255,255,255,0.1)' },
+  input: { marginBottom: 12, backgroundColor: "rgba(255,255,255,0.1)" },
   button: { marginTop: 12, paddingVertical: 4 },
   switchBtn: { marginTop: 16 },
-  error: { color: '#f25', marginBottom: 8, textAlign: 'center' },
+  error: { color: "#f25", marginBottom: 8, textAlign: "center" },
 });

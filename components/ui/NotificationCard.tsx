@@ -29,7 +29,7 @@ export default function NotificationCard({ id, type, content, createdAt, readAt,
     >
       <Pressable onPress={() => onPress(id)} style={styles.contentContainer}>
         <AntDesign
-          name={type === "viewed" ? "eyeo" : "bells"}
+          name={type === "viewed" ? "eye" : "bell"}
           size={22}
           color={isUnread ? "#fff" : "#9ca3af"}
           style={styles.icon}

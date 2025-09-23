@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   Text,
   View,
 } from "react-native";
@@ -54,6 +55,12 @@ export default function NotificationsScreen() {
     markAsRead(id);
   };
 
+  const handleRefresh = () => {
+    if (user?.id) {
+      fetchNotifications(user.id);
+    }
+  };
+
   const renderSection = ({ item }: any) => (
     <View>
       <Text
@@ -86,11 +93,14 @@ export default function NotificationsScreen() {
     }
   };
 
+  // Only show initial loading spinner
   if (loading && notifications.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
+      <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{flex: 1}}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      </LinearGradient>
     );
   }
 
@@ -98,11 +108,18 @@ export default function NotificationsScreen() {
 
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{flex: 1}}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: 90, }}>
         <FlatList
           data={groupedData}
           renderItem={renderSection}
           keyExtractor={(item) => item.title}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={handleRefresh}
+              tintColor="#2563eb"
+            />
+          }
           onEndReached={loadMore}
           onEndReachedThreshold={0.2}
           ListFooterComponent={
@@ -112,8 +129,36 @@ export default function NotificationsScreen() {
               </View>
             ) : null
           }
+          ListEmptyComponent={
+            !loading ? (
+              <View style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingTop: 100,
+                paddingHorizontal: 32
+              }}>
+                <Text style={{ 
+                  color: "#9ca3af", 
+                  fontSize: 18, 
+                  fontWeight: "500",
+                  textAlign: "center",
+                  marginBottom: 8
+                }}>
+                  No notifications yet
+                </Text>
+                <Text style={{ 
+                  color: "#6b7280", 
+                  fontSize: 14,
+                  textAlign: "center",
+                  lineHeight: 20
+                }}>
+                  When you receive notifications, they'll appear here
+                </Text>
+              </View>
+            ) : null
+          }
         />
-
         {unreadCount > 0 && (
           <Pressable
             onPress={() => {

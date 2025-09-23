@@ -24,7 +24,7 @@ import { useJobStore } from "@/store/useJobStore";
 
 const STATUS_BAR_HEIGHT =
   Platform.OS === "android" ? StatusBar.currentHeight ?? 24 : 44;
-const HEADER_CONTENT_HEIGHT = 56; // your header content height
+const HEADER_CONTENT_HEIGHT = 66; // your header content height
 const HEADER_HEIGHT = STATUS_BAR_HEIGHT + HEADER_CONTENT_HEIGHT;
 const SEARCH_BAR_HEIGHT = 56; // search bar height
 
@@ -344,9 +344,9 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 1200,
-    backgroundColor: "#0f1724", // keep opaque so status bar remains visible
+    backgroundColor: "rgba(255,255,255,0)", // keep opaque so status bar remains visible
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.03)",
+    borderBottomColor: "rgba(255,255,255,0)",
     justifyContent: "flex-end",
   },
   headerContent: {

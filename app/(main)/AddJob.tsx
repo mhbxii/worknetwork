@@ -281,6 +281,7 @@ export default function AddJob() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 90,
   },
   scrollView: {
     flex: 1,

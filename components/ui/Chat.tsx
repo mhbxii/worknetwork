@@ -8,13 +8,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   Pressable,
   RefreshControl,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 
 interface ChatProps {
@@ -73,7 +72,7 @@ const MessageBubble = ({ message, isFromMe, showTime }: MessageBubbleProps) => {
           </Text>
           {isFromMe && (
             <AntDesign
-              name={message.is_read ? "check" : "clockcircleo"}
+              name={message.is_read ? "check" : "clock-circle"}
               size={12}
               color={message.is_read ? "#10b981" : "#9ca3af"}
             />
@@ -87,6 +86,7 @@ const MessageBubble = ({ message, isFromMe, showTime }: MessageBubbleProps) => {
 export default function Chat({ conversationId, onBack }: ChatProps) {
   const { user } = useAuth();
   const [messageText, setMessageText] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
   const {
@@ -130,6 +130,22 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
     }
   }, [conversationId, user?.id]);
 
+  // Keyboard handling
+  useEffect(() => {
+    const keyboardDidShow = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    
+    const keyboardDidHide = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShow.remove();
+      keyboardDidHide.remove();
+    };
+  }, []);
+
   // Refresh handler (force reload)
   const handleRefresh = useCallback(() => {
     if (user && user.id) {
@@ -169,25 +185,23 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
 
   if (isLoading && messages.length === 0) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#111827",
-        }}
-      >
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
+      <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "#111827" }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1, paddingTop: 90, }}>
+      <View style={{ flex: 1, backgroundColor: "transparent" }}>
         {/* Messages */}
         <FlatList
           ref={flatListRef}
@@ -203,7 +217,11 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
             />
           )}
           keyExtractor={(item) => item.id.toString()}
-          style={{ flex: 1, paddingVertical: 8 }}
+          style={{ 
+            flex: 1, 
+            paddingVertical: 8,
+            marginBottom: keyboardHeight > 0 ? 80 : 0,
+          }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
@@ -212,7 +230,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
           onEndReachedThreshold={0.1}
           inverted={false}
           ListHeaderComponent={
-            hasMoreMessages && isLoading ? (
+            hasMoreMessages ? (
               <View style={{ paddingVertical: 16, alignItems: "center" }}>
                 <ActivityIndicator size="small" color="#2563eb" />
               </View>
@@ -229,6 +247,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
             backgroundColor: "#1f2937",
             borderTopWidth: 1,
             borderTopColor: "#374151",
+            marginBottom: keyboardHeight > 0 ? keyboardHeight : 0,
           }}
         >
           <TextInput
@@ -271,7 +290,7 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
             )}
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </LinearGradient>
   );
 }

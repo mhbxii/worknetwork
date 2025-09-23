@@ -33,15 +33,10 @@ export default function Profile() {
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
 
-  // set navigator header once, using user/profile data
+  //set navigator header once, using user/profile data
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: true,
-      headerStyle: {
-        backgroundColor: "#1a1a2e",
-        borderBottomWidth: 1,
-        borderBottomColor: "rgba(255,255,255,0.06)",
-      },
       headerTintColor: "#fff",
       headerTitle: () => (
         <Text
@@ -49,8 +44,7 @@ export default function Profile() {
           style={{
             color: "#fff",
             fontSize: 20,
-            fontWeight: "600",
-            marginLeft: 10,
+            fontWeight: "900",
             maxWidth: 220,
           }}
         >
@@ -171,7 +165,7 @@ export default function Profile() {
   }
 
   return (
-    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={styles.container}>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{flex: 1, paddingTop: 90,}}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <SafeAreaView style={styles.container}>
         {/* Profile Header -- reduced visual (no duplicate nav header) */}

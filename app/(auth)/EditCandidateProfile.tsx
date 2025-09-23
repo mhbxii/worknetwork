@@ -2,8 +2,9 @@ import CategorySelector from "@/components/ui/JobCategorySelector";
 import { useMetaStore } from "@/store/useMetaStore";
 import { MetaOption, OnboardingForm } from "@/types/entities";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  Keyboard,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import {
   ActivityIndicator,
   Button,
   HelperText,
+  Icon,
   IconButton,
   Surface,
   Text,
@@ -27,15 +29,29 @@ interface Props {
 }
 
 export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
- 
-  const [allSkills, setAllSkills] = useState<MetaOption[]>(
-    []
-  );
+  const [allSkills, setAllSkills] = useState<MetaOption[]>([]);
   const [skillQuery, setSkillQuery] = useState("");
   const [loadingSkills, setLoadingSkills] = useState(false);
   const { categoryOptions, DbSkills } = useMetaStore.getState();
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isSkillsInputFocused, setIsSkillsInputFocused] = useState(false);
   let clicked = false;
+
+  useEffect(() => {
+    const keyboardDidShow = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHide = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShow.remove();
+      keyboardDidHide.remove();
+    };
+  }, []);
 
   const handleSearchSkills = (newPrompt: string) => {
     setSkillQuery(newPrompt);
@@ -122,7 +138,11 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
   // === Skill Handlers ===
   const addSkill = useCallback(
     (skill: MetaOption) => {
-      if (form.skills && !form.skills.includes(skill) && form.skills.length < 15) {
+      if (
+        form.skills &&
+        !form.skills.includes(skill) &&
+        form.skills.length < 15
+      ) {
         setForm({ ...form, skills: [...form.skills, skill] });
       }
     },
@@ -131,10 +151,108 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
 
   const removeSkill = useCallback(
     (skill: MetaOption) => {
-      setForm({ ...form, skills: form.skills?.filter((s) => s !== skill) || null });
+      setForm({
+        ...form,
+        skills: form.skills?.filter((s) => s !== skill) || null,
+      });
     },
     [form, setForm]
   );
+
+  // Complete validation function
+  const handleSubmit = useCallback(() => {
+    // Field of Expertise validation
+    if (!form.job_category) {
+      alert("Please select your field of expertise.");
+      return;
+    }
+
+    // Job Title validation
+    if (!form.job_title || form.job_title.trim().length < 3) {
+      alert("Please enter a valid job title (minimum 3 characters).");
+      return;
+    }
+
+    // Experiences validation
+    if (!form.experiences || form.experiences.length === 0) {
+      alert("Please add at least one professional experience.");
+      return;
+    }
+
+    for (let i = 0; i < form.experiences.length; i++) {
+      const exp = form.experiences[i];
+
+      if (!exp.company?.name || exp.company.name.trim().length < 2) {
+        alert(`Experience #${i + 1}: Please enter a valid company name.`);
+        return;
+      }
+
+      if (!exp.job_title || exp.job_title.trim().length < 2) {
+        alert(`Experience #${i + 1}: Please enter a valid job title.`);
+        return;
+      }
+
+      if (!exp.start_date || exp.start_date.trim().length === 0) {
+        alert(`Experience #${i + 1}: Please enter a start date.`);
+        return;
+      }
+
+      // Optional: End date validation (only if you want to make it required)
+      // if (!exp.end_date || exp.end_date.trim().length === 0) {
+      //   alert(`Experience #${i + 1}: Please enter an end date.`);
+      //   return;
+      // }
+    }
+
+    // Projects validation
+    if (!form.projects || form.projects.length === 0) {
+      alert("Please add at least one project.");
+      return;
+    }
+
+    for (let i = 0; i < form.projects.length; i++) {
+      const project = form.projects[i];
+
+      if (!project.name || project.name.trim().length < 2) {
+        alert(`Project #${i + 1}: Please enter a valid project name.`);
+        return;
+      }
+
+      if (!project.description || project.description.trim().length < 10) {
+        alert(
+          `Project #${
+            i + 1
+          }: Please enter a detailed description (minimum 10 characters).`
+        );
+        return;
+      }
+
+      if (!project.start_date || project.start_date.trim().length === 0) {
+        alert(`Project #${i + 1}: Please enter a start date.`);
+        return;
+      }
+
+      // Optional: End date validation
+      // if (!project.end_date || project.end_date.trim().length === 0) {
+      //   alert(`Project #${i + 1}: Please enter an end date.`);
+      //   return;
+      // }
+    }
+
+    // Skills validation
+    if (!form.skills || form.skills.length === 0) {
+      alert("Please add at least one skill.");
+      return;
+    }
+
+    if (form.skills.length < 3) {
+      alert("Please add at least 3 skills to better showcase your expertise.");
+      return;
+    }
+
+    // All validations passed
+    onNext();
+  }, [form, onNext]);
 
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
@@ -144,6 +262,16 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
+          style={{
+            transform: [
+              {
+                translateY:
+                  keyboardHeight > 0 && isSkillsInputFocused
+                    ? -keyboardHeight
+                    : 0,
+              },
+            ],
+          }}
         >
           {/* Header */}
           <Text style={styles.title}>Edit Your Profile</Text>
@@ -163,7 +291,18 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 categories={categoryOptions}
                 selectedValue={form.job_category?.id || null}
                 onSelect={(value) =>
-                  setForm({ ...form, job_category: value ? { id: value, name: categoryOptions.find((category) => category.id === value)?.name || "" } : null })
+                  setForm({
+                    ...form,
+                    job_category: value
+                      ? {
+                          id: value,
+                          name:
+                            categoryOptions.find(
+                              (category) => category.id === value
+                            )?.name || "",
+                        }
+                      : null,
+                  })
                 }
               />
             )}
@@ -201,7 +340,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 textColor="#fff"
                 compact
               >
-                <IconButton icon="plus" size={30} iconColor="#fff" />
+                <Icon source="plus" size={30} color="#fff" />
               </Button>
             </View>
           </Surface>
@@ -275,7 +414,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 textColor="#fff"
                 compact
               >
-                <IconButton icon="plus" size={30} iconColor="#fff" />
+                <Icon source="plus" size={30} color="#fff" />
               </Button>
             </View>
           </Surface>
@@ -351,6 +490,12 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
               placeholderTextColor="#888"
               value={skillQuery}
               onChangeText={handleSearchSkills}
+              onFocus={() => {
+                setIsSkillsInputFocused(true);
+              }}
+              onBlur={() => {
+                setIsSkillsInputFocused(false);
+              }}
             />
 
             {loadingSkills && (
@@ -400,7 +545,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
             onPress={() => {
               if (clicked) return; // block further presses
               clicked = true;
-              onNext();
+              handleSubmit();
             }}
             style={styles.saveButton}
           >

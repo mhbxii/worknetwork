@@ -110,6 +110,11 @@ export default function TabLayout() {
         options={{
           title: "Messages",
           headerShown: true,
+          headerTransparent: true,
+          headerTitleStyle: {
+            color: '#fff',
+            fontWeight: 'bold',
+          },
           tabBarIcon: ({ color, size }) => (
             <View>
               <MaterialCommunityIcons
@@ -122,25 +127,40 @@ export default function TabLayout() {
           ),
         }}
       />
-      {user?.role.name == "recruiter" && (
-        <Tabs.Screen
-          name="AddJob"
-          options={{
-            title: "Add Job",
-            headerShown: true,
-            tabBarIcon: ({ color, size }) => (
-              <View>
-                <MaterialCommunityIcons name="plus-circle" size={size} color={color} />
-              </View>
-            ),
-          }}
-        />
-      )}
+
+      <Tabs.Screen
+        name="AddJob"
+        options={{
+          href: user?.role.name === "recruiter" ? "/AddJob" : null,
+          title: "Add Job",
+          headerShown: true,
+          headerTransparent: true,
+          headerTitleStyle: {
+            color: '#fff',
+            fontWeight: 'bold',
+          },
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <MaterialCommunityIcons
+                name="plus-circle"
+                size={size}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="Notifications"
         options={{
           title: "Notifications",
           headerShown: true,
+          headerTransparent: true,
+          headerTitleStyle: {
+            color: '#fff',
+            fontWeight: 'bold',
+          },
           tabBarIcon: ({ color, size }) => (
             <View>
               <MaterialCommunityIcons name="bell" size={size} color={color} />
@@ -154,6 +174,11 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           headerShown: true,
+          headerTransparent: true,
+          headerTitleStyle: {
+            color: '#fff',
+            fontWeight: 'bold',
+          },
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account" size={size} color={color} />
           ),

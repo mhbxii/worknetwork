@@ -92,7 +92,7 @@ const ConversationCard = ({ conversation, onPress }: ConversationCardProps) => {
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             {isFromMe && (
               <AntDesign
-                name={lastMessage.is_read ? "check" : "clockcircleo"}
+                name={lastMessage.is_read ? "check" : "clock-circle"}
                 size={12}
                 color={lastMessage.is_read ? "#10b981" : "#9ca3af"}
                 style={{ marginRight: 4 }}
@@ -224,7 +224,7 @@ export default function Messages() {
         ),
         headerLeft: () => (
           <Pressable onPress={handleBackToList} style={{ marginLeft: 12 }}>
-            <AntDesign name="arrowleft" size={24} color="#fff" />
+            <AntDesign name="arrow-left" size={24} color="#fff" />
           </Pressable>
         ),
       });
@@ -287,7 +287,7 @@ export default function Messages() {
   }
 
   return (
-    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1, paddingTop: 90, }}>
       <View style={{ flex: 1}}>
         <FlatList
           data={conversations}
