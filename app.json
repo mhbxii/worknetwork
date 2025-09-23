@@ -2,7 +2,7 @@
   "expo": {
     "name": "worknetwork",
     "slug": "worknetwork",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "worknetwork",
@@ -40,10 +40,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "f43db587-36c6-4064-b3d7-7d93fbaef2e6"
-      }
+      "router": {}
     },
     "owner": "mhbxii"
   }

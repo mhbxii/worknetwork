@@ -33,7 +33,7 @@ export async function fetchUser() {
         updated_at
       `)
       .eq("supabase_user_id", session.user.id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       console.error("fetchUser: Failed to fetch user data", error);
@@ -199,19 +199,19 @@ async function fetchRecruiterProfile(userId: number): Promise<UserProfile | null
   };
 }
 
-// New: fetch supabase session & user from DB and update Zustand
-export async function loadSessionAndUser() {
-  console.log("loadSessionAndUser: Starting session load");
+// // New: fetch supabase session & user from DB and update Zustand
+// export async function loadSessionAndUser() {
+//   console.log("loadSessionAndUser: Starting session load");
   
-  const { data: { session } } = await supabase.auth.getSession();
-  const auth = useAuth.getState();
+//   const { data: { session } } = await supabase.auth.getSession();
+//   const auth = useAuth.getState();
 
-  if (session) {
-    console.log("loadSessionAndUser: Session found, fetching user");
-    auth.setSession(session);
-    await fetchUser();
-  } else {
-    console.log("loadSessionAndUser: No session, signing out");
-    auth.signOut();
-  }
-}
+//   if (session) {
+//     console.log("loadSessionAndUser: Session found, fetching user");
+//     auth.setSession(session);
+//     await fetchUser();
+//   } else {
+//     console.log("loadSessionAndUser: No session, signing out");
+//     auth.signOut();
+//   }
+// }

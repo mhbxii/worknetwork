@@ -3,7 +3,7 @@ import { useAuth } from "@/store/authStore";
 import { useNotificationsStore } from "@/store/useNotificationStore";
 import { format, isToday, isYesterday } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -38,16 +38,15 @@ export default function NotificationsScreen() {
     fetchMoreNotifications,
     markAsRead,
     markAllAsRead,
-    subscribeToRealtime,
   } = useNotificationsStore();
 
-  // Initial fetch + realtime subscription
-  useEffect(() => {
-    if (user?.id) {
-      fetchNotifications(user.id);
-      subscribeToRealtime(user.id);
-    }
-  }, [user?.id]);
+  // // Initial fetch + realtime subscription
+  // useEffect(() => {
+  //   if (user?.id) {
+  //     fetchNotifications(user.id);
+  //     subscribeToRealtime(user.id);
+  //   }
+  // }, [user?.id]);
 
   const groupedData = groupNotificationsByDate(notifications);
 

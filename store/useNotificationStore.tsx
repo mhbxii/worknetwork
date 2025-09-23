@@ -1,10 +1,12 @@
 import { Notification } from "@/types/entities";
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "./authStore";
 
 const PAGE_SIZE = 20;
 
 interface NotificationsState {
+  realtimeChannel: any;
   notifications: Notification[];
   loading: boolean;
   loadingMore: boolean;
@@ -36,6 +38,7 @@ interface NotificationsState {
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: (userId: number) => Promise<void>;
   subscribeToRealtime: (userId: number) => void;
+  unsubscribeFromRealtime: () => void;
   reset: () => void;
 }
 
@@ -47,6 +50,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   hasMore: true,
   error: null,
   viewedProposalIds: new Set<number>(),
+  realtimeChannel: null,
 
   markProposalViewedLocally: (proposalId: number) => {
     if (!proposalId) return;
@@ -67,40 +71,56 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   // --------------------
   // General send
   // --------------------
-  sendNotification: async (targetUserId, type, content, jobId) => {
-    if (!targetUserId) return;
-    if (!["virgin", "viewed"].includes(type)) {
-      console.log("sendNotification: invalid type", type);
-      return;
+
+// Updated sendNotification function in your notifications store
+
+sendNotification: async (targetUserId, type, content, jobId) => {
+  if (!targetUserId) return;
+  if (!["virgin", "viewed", "accepted", "rejected"].includes(type)) {
+    console.log("sendNotification: invalid type", type);
+    return;
+  }
+
+  // keep the jobToken hack you insisted on
+  const jobToken = jobId ? ` [job:${jobId}]` : "";
+  const finalContent = `${content}${jobToken}`;
+
+  try {
+    // If jobId provided, check existence to avoid duplicate sends
+    if (jobId) {
+      const { data: existing, error: checkErr } = await supabase
+        .from("notifications")
+        .select("id")
+        .eq("target_user_id", targetUserId)
+        .ilike("content", `%[job:${jobId}]%`)
+        .limit(1);
+
+      if (checkErr) {
+        console.log("sendNotification check error:", checkErr);
+        // continue and attempt insert (we don't want to silently drop)
+      } else if (existing && existing.length > 0) {
+        console.log(
+          `Notification for target ${targetUserId} and job ${jobId} already sent`
+        );
+        return;
+      }
     }
 
-    // keep the jobToken hack you insisted on
-    const jobToken = jobId ? ` [job:${jobId}]` : "";
-    const finalContent = `${content}${jobToken}`;
+    // Get current user to check if optimistic update should happen
+    const currentUser = useAuth.getState().user;
+    let tempId : number | null = null;
 
-    try {
-      // If jobId provided, check existence to avoid duplicate sends
-      if (jobId) {
-        const { data: existing, error: checkErr } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("target_user_id", targetUserId)
-          .ilike("content", `%[job:${jobId}]%`)
-          .limit(1);
+    console.log("sendNotification debug:", {
+      targetUserId,
+      currentUserId: currentUser?.id,
+      shouldOptimisticUpdate: currentUser && targetUserId === currentUser.id,
+      type,
+      content: finalContent
+    });
 
-        if (checkErr) {
-          console.log("sendNotification check error:", checkErr);
-          // continue and attempt insert (we don't want to silently drop)
-        } else if (existing && existing.length > 0) {
-          console.log(
-            `Notification for target ${targetUserId} and job ${jobId} already sent`
-          );
-          return;
-        }
-      }
-
-      // optimistic UI update with temp negative id
-      const tempId = -Date.now();
+    // Only do optimistic UI update if the notification is for the current user
+    if (currentUser && targetUserId === currentUser.id) {
+      tempId = -Date.now();
       const createdAt = new Date().toISOString();
       set((state) => ({
         notifications: [
@@ -115,22 +135,25 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
           ...state.notifications,
         ],
       }));
+    }
 
-      // Insert into DB (client-side; you said RLS allows this)
-      const { data, error } = await supabase
-        .from("notifications")
-        .insert({
-          target_user_id: targetUserId,
-          type,
-          content: finalContent,
-        })
-        .select();
+    // Insert into DB (client-side; you said RLS allows this)
+    const { data, error } = await supabase
+      .from("notifications")
+      .insert({
+        target_user_id: targetUserId,
+        type,
+        content: finalContent,
+      })
+      .select();
 
-      if (error) {
-        console.log("Error sending notification:", error);
-        return;
-      }
+    if (error) {
+      console.log("Error sending notification:", error);
+      return;
+    }
 
+    // Update optimistic notification with real data (only if we added one)
+    if (tempId && currentUser && targetUserId === currentUser.id) {
       const inserted =
         Array.isArray(data) && data[0] ? (data[0] as Notification) : undefined;
       if (inserted) {
@@ -141,12 +164,13 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
           ],
         }));
       }
-    } catch (err: any) {
-      console.log("sendNotification caught:", err);
     }
-  },
-
-  // --------------------
+  } catch (err: any) {
+    console.log("sendNotification caught:", err);
+  }
+},
+  
+  //-----------------
   // Specific helper: job viewed
   // --------------------
   sendJobViewedNotification: async (targetUserId, jobId, proposalId) => {
@@ -271,7 +295,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   },
 
   subscribeToRealtime: (userId) => {
-    supabase
+    // Clean up existing subscription first
+    get().unsubscribeFromRealtime();
+  
+    const channel = supabase
       .channel("notifications")
       .on(
         "postgres_changes",
@@ -282,6 +309,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
           filter: `target_user_id=eq.${userId}`,
         },
         (payload) => {
+          console.log("Realtime notification received:", {
+            targetUserId: payload.new.target_user_id,
+            currentUser: userId,
+            content: payload.new.content
+          });
+          
           set((state) => ({
             notifications: [
               payload.new as Notification,
@@ -291,6 +324,17 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         }
       )
       .subscribe();
+  
+    // Store channel reference for cleanup
+    set({ realtimeChannel: channel });
+  },
+
+  unsubscribeFromRealtime: () => {
+    const { realtimeChannel } = get();
+    if (realtimeChannel) {
+      supabase.removeChannel(realtimeChannel);
+      set({ realtimeChannel: null });
+    }
   },
 
   reset: () =>

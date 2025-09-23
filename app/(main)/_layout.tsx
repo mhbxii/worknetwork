@@ -19,7 +19,7 @@ export default function TabLayout() {
   const fetchMeta = useMetaStore((s) => s.fetchMeta);
 
   // Notifications
-  const { fetchNotifications, subscribeToRealtime } = useNotificationsStore();
+  const { fetchNotifications, subscribeToRealtime: subscribeToNotificationRealtime, unsubscribeFromRealtime: unsubscribeFromNotificationRealtime } = useNotificationsStore();
   const unreadNotifications = useNotificationsStore(
     (s) => s.notifications.filter((n) => !n.read_at).length
   );
@@ -44,7 +44,7 @@ export default function TabLayout() {
 
     // Initialize notifications
     fetchNotifications(user.id);
-    subscribeToRealtime(user.id);
+    subscribeToNotificationRealtime(user.id);
 
     // Initialize chat
     fetchConversations({ id: user.id, name: user.name });
@@ -53,6 +53,7 @@ export default function TabLayout() {
     return () => {
       // Cleanup
       unsubscribeChatRealtime();
+      unsubscribeFromNotificationRealtime();
     };
   }, [user?.id]);
 

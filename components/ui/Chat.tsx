@@ -247,7 +247,6 @@ export default function Chat({ conversationId, onBack }: ChatProps) {
             backgroundColor: "#1f2937",
             borderTopWidth: 1,
             borderTopColor: "#374151",
-            marginBottom: keyboardHeight > 0 ? keyboardHeight : 0,
           }}
         >
           <TextInput

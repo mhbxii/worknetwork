@@ -10,7 +10,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import CountryFlag from "react-native-country-flag";
 import { Button, SegmentedButtons, Text, TextInput } from "react-native-paper";
 
 interface Props {
@@ -26,29 +25,34 @@ interface Country {
 }
 
 export default function UserDetails({ form, setForm, onNext }: Props) {
-  const { countryOptions } = useMetaStore();
+  const { countryOptions, countryLookup } = useMetaStore();
   const [search, setSearch] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
 
-  
+  // normalize input
+  const query = (search ?? "").trim().toLowerCase();
 
-  const filtered = countryOptions.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const selectedCountry = countryOptions.find((c) => c.id === form.country?.id);
+  // Build a combined filter: when query length <= 2, match code OR name startsWith.
+  // Otherwise use full-name includes (more forgiving).
+  const filtered = countryOptions.filter((c) => {
+    const code = (c.name ?? "").toLowerCase(); // your stored ISO code
+    const fullName = (countryLookup[c.id] ?? "").toLowerCase();
 
-  // Dynamic segmented button colors
-  const roleTheme = (roleName: "candidate" | "recruiter") => ({
-    colors: {
-      secondaryContainer:
-        form.role.name === roleName
-          ? roleName === "candidate"
-            ? "#4CAF50" // green
-            : "#FF9800" // orange
-          : "#333", // unselected background
-      onSecondaryContainer: "#fff", // text color
-    },
+    if (!query) return true;
+    if (query.length <= 2) {
+      // treat as code search OR name startsWith
+      return code.startsWith(query) || fullName.startsWith(query);
+    }
+    // longer inputs => search full country name
+    return fullName.includes(query) || code.startsWith(query);
   });
+
+  const isoToFlagEmoji = (iso?: string) => {
+    if (!iso) return "🌐";
+    // 'A' -> 0x1F1E6 offset
+    return [...iso.toUpperCase()]
+      .map((c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
+      .join("");
+  };
 
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
@@ -86,7 +90,13 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
             <SegmentedButtons
               value={form.role.name}
               onValueChange={(role) =>
-                setForm({ ...form, role: {id: form.role.id ,name: role as "candidate" | "recruiter" } })
+                setForm({
+                  ...form,
+                  role: {
+                    id: form.role.id,
+                    name: role as "candidate" | "recruiter",
+                  },
+                })
               }
               buttons={[
                 {
@@ -123,7 +133,7 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
               value={search}
               onChangeText={setSearch}
               style={styles.input}
-              placeholder="Start typing..."
+              placeholder="(e.g. 'Tunisia' or 'TN')"
             />
 
             {/* Country Buttons (3 per row, responsive width) */}
@@ -145,7 +155,9 @@ export default function UserDetails({ form, setForm, onNext }: Props) {
                       justifyContent: "center",
                     }}
                   >
-                    <CountryFlag isoCode={c.name} size={18} />
+                    <Text style={{ fontSize: 18, marginRight: 6 }}>
+                      {isoToFlagEmoji(c.name)}
+                    </Text>
                     {/* Country Name <Text style={styles.countryName}> {c.name}</Text> */}
                   </Button>
                 </View>
@@ -225,5 +237,4 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   countryName: { color: "#fff", marginLeft: 6, fontSize: 12 },
-  
 });

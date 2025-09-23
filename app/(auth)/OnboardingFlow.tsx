@@ -1,4 +1,7 @@
-import { signUpCandidate, signUpRecruiter } from "@/services/customSignUpService";
+import {
+  signUpCandidate,
+  signUpRecruiter,
+} from "@/services/customSignUpService";
 import { useAuth } from "@/store/authStore";
 import { OnboardingForm } from "@/types/entities";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,7 +9,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ProgressBar } from "react-native-paper";
 import AuthScreen from "./AuthScreen";
 import CompanyDetails from "./CompanyDetails";
@@ -16,8 +24,9 @@ import UserDetails from "./UserDetails";
 
 export default function OnboardingFlow() {
   const router = useRouter();
-  const { setUser, setProfile, setInitialized } = useAuth();
+  const { setInitialized } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [step, setStep] = useState(0);
 
@@ -25,23 +34,23 @@ export default function OnboardingFlow() {
     email: "",
     password: "",
     name: "",
-    role: { id: 1, name: "candidate" },// Default to candidate},
+    role: { id: 1, name: "candidate" }, // Default to candidate},
     country: null, // preload parsed CV here
-  
+
     job_title: "",
-    experiences: [],  // preload parsed CV here
-    projects: [],     // preload parsed CV here
+    experiences: [], // preload parsed CV here
+    projects: [], // preload parsed CV here
     skills: null,
     job_category: null,
-  
+
     company: null, // for recruiters
     position_title: "",
   });
 
-  const next = () =>{
-    if(steps.length <= step + 1) return; // Prevent going beyond last step
+  const next = () => {
+    if (steps.length <= step + 1) return; // Prevent going beyond last step
     setStep((s) => s + 1);
-  }
+  };
 
   const back = () => {
     if (step > 0) {
@@ -53,22 +62,19 @@ export default function OnboardingFlow() {
 
   const submit = async () => {
     try {
-      const result = form.role.name === "candidate"
+      setIsSubmitting(true);
+      form.role.name === "candidate"
         ? await signUpCandidate(form)
         : await signUpRecruiter(form);
-  
-      setUser(result.user);
-      setProfile(result.profile);
+
       setInitialized(true);
-  
-      //router.replace("/(main)"); double redirect unneeded.
     } catch (err: any) {
       console.error("Signup failed:", err.message);
       alert("Signup Error: " + err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  
-  
 
   const steps = [
     <AuthScreen
@@ -88,11 +94,13 @@ export default function OnboardingFlow() {
             form={form}
             setForm={setForm}
             onNext={submit}
+            isSubmitting={isSubmitting}
+            setIsSubmitting={setIsSubmitting}
           />,
         ]
       : [
           <CompanyDetails
-           //key="company"
+            //key="company"
             form={form}
             setForm={setForm}
             onNext={submit}
@@ -108,7 +116,7 @@ export default function OnboardingFlow() {
             <TouchableOpacity onPress={back}>
               <Ionicons name="arrow-back" size={28} color="#fff" />
             </TouchableOpacity>
-          
+
             <ProgressBar
               progress={(step + 1) / steps.length} // step is 0-based
               color="#fff"
@@ -129,6 +137,11 @@ export default function OnboardingFlow() {
       >
         {steps[step]}
       </MotiView>
+      {isSubmitting && (
+        <View style={styles.spinnerOverlay}>
+          <ActivityIndicator animating={true} color="#fff" size="large" />
+        </View>
+      )}
     </LinearGradient>
   );
 }
@@ -140,5 +153,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 50,
+  },
+  spinnerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
   },
 });

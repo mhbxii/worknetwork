@@ -7,6 +7,7 @@ type MetaStore = {
   categoryOptions: MetaOption[];
   DbSkills: MetaOption[];
   countryOptions: MetaOption[];
+  countryLookup: Record<number, string>; // new, id -> full country name
   loading: boolean;
   fetchMeta: () => Promise<void>;
 };
@@ -16,6 +17,7 @@ export const useMetaStore = create<MetaStore>((set) => ({
   categoryOptions: [],
   DbSkills: [],
   countryOptions: [],
+  countryLookup: {},
   loading: false,
   fetchMeta: async () => {
     set({ loading: true });
@@ -23,7 +25,7 @@ export const useMetaStore = create<MetaStore>((set) => ({
       supabase.from("status").select("id, name"),
       supabase.from("job_categories").select("id, name"),
       supabase.from("skills").select("id, name").order("name"),
-      supabase.from("country").select("id, code").order("code"),
+      supabase.from("country").select("id, name, code").order("code"),
     ]);
 
     set({
@@ -34,6 +36,7 @@ export const useMetaStore = create<MetaStore>((set) => ({
         id: country.id,
         name: country.code, // Using 'code' as the 'name' field
       })),
+      countryLookup: Object.fromEntries((countryData ?? []).map(c => [c.id, (c.name ?? "").trim()])),
       loading: false,
     });
   },

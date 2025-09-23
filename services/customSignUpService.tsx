@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { OnboardingForm } from "@/types/entities";
 import "react-native-url-polyfill/auto";
+import { signInWithEmail } from "./authService";
 
 export async function signUpCandidate(form: OnboardingForm) {
   const {
@@ -130,17 +131,19 @@ export async function signUpCandidate(form: OnboardingForm) {
     if (expError) throw new Error(expError.message);
   }
 
-  return {
-    user: userData, // base user from public.users
-    profile: {
-        job_title: candidateData.job_title,
-        experiences, // pass from input or fetch fresh if you want consistency
-        projects,
-        skills,
-        job_category: candidateData.job_category,
-        nb_proposals: candidateData.nb_proposals || null, // if you track proposals
-      },
-  };
+  // return {
+  //   user: userData, // base user from public.users
+  //   profile: {
+  //       job_title: candidateData.job_title,
+  //       experiences, // pass from input or fetch fresh if you want consistency
+  //       projects,
+  //       skills,
+  //       job_category: candidateData.job_category,
+  //       nb_proposals: candidateData.nb_proposals || null, // if you track proposals
+  //     },
+  // };
+  await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay
+  await signInWithEmail(email, password);
 }
 
 export async function signUpRecruiter(form: OnboardingForm) {
@@ -233,11 +236,13 @@ export async function signUpRecruiter(form: OnboardingForm) {
     .single();
   if (hrError) throw new Error(hrError.message);
 
-  return {
-    user: userData,
-    profile: {
-        company: {id: finalCompanyId, name: company.name},
-        position_title: hrData.position_title,
-    },
-  };
+  // return {
+  //   user: userData,
+  //   profile: {
+  //       company: {id: finalCompanyId, name: company.name},
+  //       position_title: hrData.position_title,
+  //   },
+  // };
+  await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay
+  await signInWithEmail(email, password);
 }

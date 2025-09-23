@@ -26,9 +26,17 @@ interface Props {
   form: OnboardingForm;
   setForm: (form: OnboardingForm) => void;
   onNext: () => void;
+  isSubmitting?: boolean;
+  setIsSubmitting?: (loading: boolean) => void;
 }
 
-export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
+export default function EditCandidateProfile({
+  form,
+  setForm,
+  onNext,
+  isSubmitting = false,
+  setIsSubmitting,
+}: Props) {
   const [allSkills, setAllSkills] = useState<MetaOption[]>([]);
   const [skillQuery, setSkillQuery] = useState("");
   const [loadingSkills, setLoadingSkills] = useState(false);
@@ -36,7 +44,6 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isSkillsInputFocused, setIsSkillsInputFocused] = useState(false);
-  let clicked = false;
 
   useEffect(() => {
     const keyboardDidShow = Keyboard.addListener("keyboardDidShow", (e) => {
@@ -76,7 +83,11 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
   const updateExperience = useCallback(
     (index: number, field: string, value: any) => {
       const updated = [...form.experiences];
-      updated[index] = { ...updated[index], [field]: value };
+      if (field === "company_name") {
+        updated[index] = { ...updated[index], company: { id: 0, name: value } };
+      } else {
+        updated[index] = { ...updated[index], [field]: value };
+      }
       setForm({ ...form, experiences: updated });
     },
     [form, setForm]
@@ -159,100 +170,129 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
     [form, setForm]
   );
 
+  const isValidDateFormat = (dateString: string): boolean => {
+    // 1. Accept YYYY-M-D or YYYY-MM-DD
+    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateString)) {
+      return false;
+    }
+
+    // 2. Extract numeric components
+    const [yStr, mStr, dStr] = dateString.split("-");
+    const year = Number(yStr);
+    const month = Number(mStr);
+    const day = Number(dStr);
+
+    // 3. Basic range checks
+    if (month < 1 || month > 12) {
+      return false;
+    }
+
+    // 4. Days in this month (UTC avoids timezone drift)
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    if (day < 1 || day > daysInMonth) {
+      return false;
+    }
+
+    // 5. Rollover sanity check via numeric comparison
+    const utcDate = new Date(Date.UTC(year, month - 1, day));
+    return (
+      utcDate.getUTCFullYear() === year &&
+      utcDate.getUTCMonth() + 1 === month &&
+      utcDate.getUTCDate() === day
+    );
+  };
+
+  //##########################################################################################################################################
   // Complete validation function
-  const handleSubmit = useCallback(() => {
-    // Field of Expertise validation
-    if (!form.job_category) {
-      alert("Please select your field of expertise.");
-      return;
-    }
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting?.(true);
 
-    // Job Title validation
-    if (!form.job_title || form.job_title.trim().length < 3) {
-      alert("Please enter a valid job title (minimum 3 characters).");
-      return;
-    }
-
-    // Experiences validation
-    if (!form.experiences || form.experiences.length === 0) {
-      alert("Please add at least one professional experience.");
-      return;
-    }
-
-    for (let i = 0; i < form.experiences.length; i++) {
-      const exp = form.experiences[i];
-
-      if (!exp.company?.name || exp.company.name.trim().length < 2) {
-        alert(`Experience #${i + 1}: Please enter a valid company name.`);
+    try {
+      // 1. Field of Expertise validation
+      if (!form.job_category) {
+        alert("Please select your field of expertise.");
         return;
       }
 
-      if (!exp.job_title || exp.job_title.trim().length < 2) {
-        alert(`Experience #${i + 1}: Please enter a valid job title.`);
+      // 2. Job Title validation
+      if (!form.job_title || form.job_title.trim().length < 3) {
+        alert("Please enter a valid job title (minimum 3 characters).");
         return;
       }
 
-      if (!exp.start_date || exp.start_date.trim().length === 0) {
-        alert(`Experience #${i + 1}: Please enter a start date.`);
+      // 3. Experiences validation (loops through each entry)
+      for (let i = 0; i < form.experiences.length; i++) {
+        const exp = form.experiences[i];
+        const expNum = i + 1;
+
+        if (!exp.company?.name || exp.company.name.trim().length < 2) {
+          alert(`Experience #${expNum}: Please enter a valid company name.`);
+          return;
+        }
+        if (!exp.job_title || exp.job_title.trim().length < 3) {
+          alert(`Experience #${expNum}: Please enter a valid job title.`);
+          return;
+        }
+        // START DATE VALIDATION (Required + Format)
+        if (!exp.start_date || !isValidDateFormat(exp.start_date)) {
+          alert(
+            `Experience #${expNum}: Please enter a valid start date in YYYY-MM-DD format.`
+          );
+          return;
+        }
+        // END DATE VALIDATION (Optional, but must have correct format if present)
+        if (exp.end_date && !isValidDateFormat(exp.end_date)) {
+          alert(
+            `Experience #${expNum}: The end date is invalid. Please use YYYY-MM-DD format or leave it empty.`
+          );
+          return;
+        }
+      }
+
+      // 4. Projects validation (loops through each entry)
+      for (let i = 0; i < form.projects.length; i++) {
+        const project = form.projects[i];
+        const projNum = i + 1;
+
+        if (!project.name || project.name.trim().length < 3) {
+          alert(`Project #${projNum}: Please enter a valid project name.`);
+          return;
+        }
+        if (!project.description || project.description.trim().length < 10) {
+          alert(`Project #${projNum}: Please provide a longer description.`);
+          return;
+        }
+        // START DATE VALIDATION (Required + Format)
+        if (!project.start_date || !isValidDateFormat(project.start_date)) {
+          alert(
+            `Project #${projNum}: Please enter a valid start date in YYYY-MM-DD format.`
+          );
+          return;
+        }
+        // END DATE VALIDATION (Optional, but must have correct format if present)
+        if (project.end_date && !isValidDateFormat(project.end_date)) {
+          alert(
+            `Project #${projNum}: The end date is invalid. Please use YYYY-MM-DD format or leave it empty.`
+          );
+          return;
+        }
+      }
+
+      // 5. Skills validation
+      if (!form.skills || form.skills.length < 3) {
+        alert("Please add at least 3 skills to your profile.");
         return;
       }
 
-      // Optional: End date validation (only if you want to make it required)
-      // if (!exp.end_date || exp.end_date.trim().length === 0) {
-      //   alert(`Experience #${i + 1}: Please enter an end date.`);
-      //   return;
-      // }
+      // All validation passed
+      //alert("All validations passed! Ready to proceed.");
+      // console.log("Form is valid:", form);
+      onNext(); // You can uncomment this to move to the next step
+    } finally {
+      setIsSubmitting?.(false); // Ensures the button is re-enabled even if validation fails
     }
-
-    // Projects validation
-    if (!form.projects || form.projects.length === 0) {
-      alert("Please add at least one project.");
-      return;
-    }
-
-    for (let i = 0; i < form.projects.length; i++) {
-      const project = form.projects[i];
-
-      if (!project.name || project.name.trim().length < 2) {
-        alert(`Project #${i + 1}: Please enter a valid project name.`);
-        return;
-      }
-
-      if (!project.description || project.description.trim().length < 10) {
-        alert(
-          `Project #${
-            i + 1
-          }: Please enter a detailed description (minimum 10 characters).`
-        );
-        return;
-      }
-
-      if (!project.start_date || project.start_date.trim().length === 0) {
-        alert(`Project #${i + 1}: Please enter a start date.`);
-        return;
-      }
-
-      // Optional: End date validation
-      // if (!project.end_date || project.end_date.trim().length === 0) {
-      //   alert(`Project #${i + 1}: Please enter an end date.`);
-      //   return;
-      // }
-    }
-
-    // Skills validation
-    if (!form.skills || form.skills.length === 0) {
-      alert("Please add at least one skill.");
-      return;
-    }
-
-    if (form.skills.length < 3) {
-      alert("Please add at least 3 skills to better showcase your expertise.");
-      return;
-    }
-
-    // All validations passed
-    onNext();
-  }, [form, onNext]);
+  };
 
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={{ flex: 1 }}>
@@ -262,16 +302,16 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          style={{
-            transform: [
-              {
-                translateY:
-                  keyboardHeight > 0 && isSkillsInputFocused
-                    ? -keyboardHeight
-                    : 0,
-              },
-            ],
-          }}
+          // style={{
+          //   transform: [
+          //     {
+          //       translateY:
+          //         keyboardHeight > 0 && isSkillsInputFocused
+          //           ? -keyboardHeight
+          //           : 0,
+          //     },
+          //   ],
+          // }}
         >
           {/* Header */}
           <Text style={styles.title}>Edit Your Profile</Text>
@@ -380,7 +420,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
               <View style={styles.dateRow}>
                 <TextInput
                   style={[styles.input, styles.dateInput]}
-                  placeholder="Start Date"
+                  placeholder="Start Date (Y-M-D)" // <-- Updated
                   placeholderTextColor="#888"
                   value={exp.start_date || ""}
                   onChangeText={(text) =>
@@ -389,7 +429,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 />
                 <TextInput
                   style={[styles.input, styles.dateInput]}
-                  placeholder="End Date"
+                  placeholder="End Date (Y-M-D)" // <-- Updated
                   placeholderTextColor="#888"
                   value={exp.end_date || ""}
                   onChangeText={(text) =>
@@ -458,7 +498,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
               <View style={styles.dateRow}>
                 <TextInput
                   style={[styles.input, styles.dateInput]}
-                  placeholder="Start Date"
+                  placeholder="Start Date (Y-M-D)" // <-- Updated
                   placeholderTextColor="#888"
                   value={project.start_date || ""}
                   onChangeText={(text) =>
@@ -467,7 +507,7 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 />
                 <TextInput
                   style={[styles.input, styles.dateInput]}
-                  placeholder="End Date"
+                  placeholder="End Date (Y-M-D)" // <-- Updated
                   placeholderTextColor="#888"
                   value={project.end_date || ""}
                   onChangeText={(text) =>
@@ -484,24 +524,6 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
               Skills ({form.skills?.length || 0})
             </Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Search skills..."
-              placeholderTextColor="#888"
-              value={skillQuery}
-              onChangeText={handleSearchSkills}
-              onFocus={() => {
-                setIsSkillsInputFocused(true);
-              }}
-              onBlur={() => {
-                setIsSkillsInputFocused(false);
-              }}
-            />
-
-            {loadingSkills && (
-              <ActivityIndicator color="#fff" style={{ marginVertical: 8 }} />
-            )}
-
             {allSkills.length > 0 && (
               <View style={styles.skillSuggestions}>
                 {allSkills.map((skill) => (
@@ -514,6 +536,10 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                   </TouchableOpacity>
                 ))}
               </View>
+            )}
+
+            {loadingSkills && (
+              <ActivityIndicator color="#fff" style={{ marginVertical: 8 }} />
             )}
 
             <View style={styles.skillChips}>
@@ -538,18 +564,30 @@ export default function EditCandidateProfile({ form, setForm, onNext }: Props) {
                 );
               })}
             </View>
+
+            <TextInput
+              style={[styles.input, { marginTop: 12 }]}
+              placeholder="Search skills..."
+              placeholderTextColor="#888"
+              value={skillQuery}
+              onChangeText={handleSearchSkills}
+              onFocus={() => {
+                setIsSkillsInputFocused(true);
+              }}
+              onBlur={() => {
+                setIsSkillsInputFocused(false);
+              }}
+            />
           </Surface>
 
           <Button
             mode="contained"
-            onPress={() => {
-              if (clicked) return; // block further presses
-              clicked = true;
-              handleSubmit();
-            }}
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting}
             style={styles.saveButton}
           >
-            Save & Continue
+            {isSubmitting ? "Saving..." : "Save & Continue"}
           </Button>
         </ScrollView>
       </SafeAreaView>
@@ -628,6 +666,7 @@ const styles = StyleSheet.create({
   dateInput: {
     flex: 1,
     marginBottom: 0,
+    fontSize: 14,
   },
   skillSuggestions: {
     marginBottom: 12,
